@@ -11,6 +11,14 @@ venv/
 .venv/
 
 # Node
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+!vision/*.ipynb
+
+# --------------------------------------------
+# Node.js (Vue 프론트엔드)
+# --------------------------------------------
 node_modules/
 dist/
 
@@ -21,6 +29,29 @@ log/
 
 # 큰 파일
 *.pt
+*.pth
+*.onnx
+*.engine
+*.weights
+
+# 학습 결과
+runs/
+wandb/
+checkpoints/
+vision/models/checkpoints/
+
+# 데이터셋 (크기가 큼 - Google Drive로 공유)
+vision/dataset/
+vision/dataset_balanced/
+vision/dataset_mini/
+vision/data/
+*.h5
+*.hdf5
+
+# --------------------------------------------
+# 로봇/시뮬 관련 파일
+# --------------------------------------------
+# SLAM 맵 (큰 파일)
 *.pgm
 dataset/
 models/checkpoints/
