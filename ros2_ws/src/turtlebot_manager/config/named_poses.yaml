@@ -1,0 +1,13 @@
+named_poses:
+  dobot_near:
+    x: -0.876
+    y: 0.82
+    yaw: 1.5708
+  return_counter:
+    x: -3.09
+    y: -1.21
+    yaw: 3.1416
+  waiting:
+    x: -0.254
+    y: -1.79
+    yaw: 1.5708
