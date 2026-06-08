@@ -24,6 +24,7 @@ class Report(models.Model):
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     lost_location = models.CharField(max_length=100, blank=True, null=True)
     lost_description = models.TextField()  # LLM이 분석할 핵심 자연어 데이터
+    lost_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='searching')
     created_at = models.DateTimeField(auto_now_add=True)
 
