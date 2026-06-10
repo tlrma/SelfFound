@@ -23,6 +23,8 @@ log/
 *.pt
 *.pgm
 dataset/
+dataset_*/
+*.zip
 models/checkpoints/
 
 # IDE
