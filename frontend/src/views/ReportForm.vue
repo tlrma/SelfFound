@@ -1,0 +1,138 @@
+<template>
+  <div class="report-form-container">
+    <h2>분실물 신고서 작성</h2>
+    <form @submit.prevent="submitReport">
+      <div class="form-group">
+        <label for="name">이름</label>
+        <input type="text" id="name" v-model="formData.name" required placeholder="이름을 입력하세요" />
+      </div>
+
+      <div class="form-group">
+        <label for="email">이메일</label>
+        <input type="email" id="email" v-model="formData.email" required placeholder="example@email.com" />
+      </div>
+
+      <div class="form-group">
+        <label for="category">물품 카테고리</label>
+        <select id="category" v-model="formData.category" required>
+          <option value="" disabled>카테고리를 선택해주세요</option>
+          <option value="card">카드</option>
+          <option value="glasses">안경</option>
+          <option value="wallet">지갑</option>
+          <option value="phone">휴대폰</option>
+          <option value="etc">기타</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="found_location">분실 장소</label>
+        <input type="text" id="found_location" v-model="formData.found_location" required placeholder="예: 서울역 1번 출구" />
+      </div>
+
+      <div class="form-group">
+        <label for="found_at">분실 시간</label>
+        <input type="datetime-local" id="found_at" v-model="formData.found_at" required />
+      </div>
+
+      <div class="form-group">
+        <label for="features">상세 묘사 및 특징</label>
+        <textarea id="features" v-model="formData.features" required rows="4" placeholder="물품의 색상, 브랜드, 특이사항 등을 상세히 적어주세요"></textarea>
+      </div>
+
+      <div class="checkbox-group">
+        <label>
+          <input type="checkbox" v-model="formData.agreeInfo" required />
+          (필수) 개인정보 수집 및 처리 동의
+        </label>
+        <label>
+          <input type="checkbox" v-model="formData.agreeVerify" required />
+          (필수) 분실자 본인확인 절차 동의
+        </label>
+      </div>
+
+      <button type="submit" class="submit-btn">신고서 제출</button>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import axios from 'axios';
+
+const router = useRouter();
+
+const formData = ref({
+  name: '',
+  email: '',
+  category: '',
+  found_location: '',
+  found_at: '',
+  features: '',
+  agreeInfo: false,
+  agreeVerify: false
+});
+
+const submitReport = async () => {
+  try {
+    // 프로젝트 규칙에 맞게 POST /api/reports/ 엔드포인트 호출
+    const response = await axios.post('/api/reports/', {
+      item_name: formData.value.category, // 백엔드 속성명에 맞춤
+      features: formData.value.features
+      // 필요한 경우 name, email, found_location 등도 함께 전송하도록 백엔드 시리얼라이저와 매핑
+    });
+
+    if (response.status === 200 || response.status === 201) {
+      // 성공 시 백엔드로부터 생성된 ID(접수번호)를 받아 완료 페이지로 이동
+      const reportId = response.data.id || response.data.data?.id;
+      router.push({ name: 'ReportStatus', params: { id: reportId } });
+    }
+  } catch (error) {
+    console.error('신고 접수 실패:', error);
+    alert('신고서 제출 중 오류가 발생했습니다.');
+  }
+};
+</script>
+
+<style scoped>
+.report-form-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+.form-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+.form-group input, .form-group select, .form-group textarea {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.checkbox-group {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.submit-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.submit-btn:hover {
+  background-color: #222;
+}
+</style>
