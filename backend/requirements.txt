@@ -46,6 +46,18 @@ diagnostic-updater==4.0.6
 Django==5.2.14
 django-environ==0.13.0
 djangorestframework==3.17.1
+dobot-bringup==1.0.0
+dobot-control-panel==1.0.0
+dobot-demos==1.0.0
+dobot-diagnostics==1.0.0
+dobot-driver==1.0.0
+dobot-end-effector==1.0.0
+dobot-homing==1.0.0
+dobot-kinematics==1.0.0
+dobot-motion==1.0.0
+dobot-msgs==1.0.0
+dobot-state-updater==1.0.0
+dobot-visualization-tools==1.0.0
 -e git+https://github.com/tlrma/SelfFound.git@c3100580b3aa92603672554e7add03305ffbc976#egg=dobot_bringup
 -e git+https://github.com/tlrma/SelfFound.git@c3100580b3aa92603672554e7add03305ffbc976#egg=dobot_control_panel
 -e git+https://github.com/tlrma/SelfFound.git@c3100580b3aa92603672554e7add03305ffbc976#egg=dobot_demos
