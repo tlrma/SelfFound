@@ -1,4 +1,9 @@
 <template>
+  <div class="navigation-header">
+    <button type="button" @click="$router.push({ name: 'UserAuth' })" class="btn-history">
+      📋 내 신고 기록 조회
+    </button>
+  </div>
   <div class="report-form-container">
     <h2>분실물 신고서 작성</h2>
     <form @submit.prevent="submitReport">
@@ -77,14 +82,17 @@ const submitReport = async () => {
   try {
     // 프로젝트 규칙에 맞게 POST /api/reports/ 엔드포인트 호출
     const response = await axios.post('/api/reports/', {
-      item_name: formData.value.category, // 백엔드 속성명에 맞춤
-      features: formData.value.features
-      // 필요한 경우 name, email, found_location 등도 함께 전송하도록 백엔드 시리얼라이저와 매핑
+      user_name: formData.value.name,
+      user_email: formData.value.email,
+      category: formData.value.category,          // 기존 소문자 옵션 값 그대로 전송
+      lost_location: formData.value.found_location, // found_location -> lost_location 매핑
+      lost_at: formData.value.found_at,             // found_at -> lost_at 매핑
+      lost_description: formData.value.features
     });
 
     if (response.status === 200 || response.status === 201) {
       // 성공 시 백엔드로부터 생성된 ID(접수번호)를 받아 완료 페이지로 이동
-      const reportId = response.data.id || response.data.data?.id;
+      const reportId = response.data.report.id;
       router.push({ name: 'ReportStatus', params: { id: reportId } });
     }
   } catch (error) {
@@ -95,6 +103,24 @@ const submitReport = async () => {
 </script>
 
 <style scoped>
+.navigation-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+.btn-history {
+  background-color: #4a5568;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-history:hover {
+  background-color: #2d3748;
+}
 .report-form-container {
   max-width: 600px;
   margin: 0 auto;

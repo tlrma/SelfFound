@@ -6,12 +6,17 @@
     </div>
 
     <div class="info-box" v-if="reportData">
-      <h4>접수 정보</h4>
-      <p><strong>접수 번호 (ID):</strong> {{ reportId }}</p>
-      <p><strong>신고 물품:</strong> {{ reportData.item_name }}</p>
-      <p><strong>상세 특징:</strong> {{ reportData.features }}</p>
-      <p><strong>신고 일시:</strong> {{ formatDate(reportData.reported_at) }}</p>
-    </div>
+  <h4>접수 정보</h4>
+  <p><strong>접수 번호 (ID):</strong> {{ reportId }}</p>
+  <p><strong>신고 물품:</strong> {{ getCategoryLabel(reportData.category) }}</p>
+  <p><strong>분실 장소:</strong> {{ reportData.lost_location }}</p>
+  
+  <p><strong>분실 시간:</strong> {{ formatDate(reportData.lost_at) }}</p>
+  
+  <p><strong>상세 특징:</strong> {{ reportData.lost_description }}</p>
+  
+  <p><strong>접수 일시:</strong> {{ formatDate(reportData.created_at) }}</p>
+</div>
     
     <div v-else class="loading">
       신고 정보를 불러오는 중입니다...
@@ -33,10 +38,14 @@ const reportData = ref(null);
 
 const fetchReportStatus = async () => {
   try {
-    // 프로젝트 명세서의 GET /api/reports/{id}/ 호출 구현
     const response = await axios.get(`/api/reports/${reportId}/`);
     if (response.status === 200) {
-      reportData.value = response.data.data || response.data;
+      // 💡 백엔드가 보낸 { status: 'ok', data: { id: 6, ... } } 구조에서 data만 정확히 바인딩합니다.
+      if (response.data && response.data.status === 'ok') {
+        reportData.value = response.data.data;
+      } else {
+        reportData.value = response.data; // 예외 케이스 방어 코드
+      }
     }
   } catch (error) {
     console.error('신고 정보 조회 실패:', error);
@@ -48,6 +57,17 @@ const goHome = () => {
   router.push('/');
 };
 
+const getCategoryLabel = (category) => {
+  const categories = {
+    card: '카드',
+    glasses: '안경',
+    wallet: '지갑',
+    phone: '휴대폰',
+    etc: '기타'
+  };
+  return categories[category] || category;
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -55,15 +75,7 @@ const formatDate = (dateStr) => {
 };
 
 onMounted(() => {
-  //fetchReportStatus();
-
-  // 확인용 가짜 데이터
-  // http://localhost:5173/status/1
-  reportData.value = {
-    item_name: '지갑',
-    features: '검은 가죽 반지갑, 카드 슬롯 여러 개',
-    reported_at: new Date().toISOString()
-  };
+  fetchReportStatus();
 });
 </script>
 
