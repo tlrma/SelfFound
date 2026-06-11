@@ -23,29 +23,29 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="report in reports" :key="report.id">
-              <td><strong>#{{ report.id }}</strong></td>
-              <td>{{ report.user_name }}</td>
-              <td>{{ report.user_email }}</td>
-              <td><span class="badge category">{{ report.category }}</span></td>
-              <td>{{ report.lost_location }}</td>
-              <td class="text-left">{{ report.lost_description }}</td>
-              <td>
-                <select 
-                  v-model="report.status" 
-                  @change="updateStatus(report.id, report.status)"
-                  :class="['status-select', report.status]"
-                >
-                  <option value="received">접수 완료</option>
-                  <option value="matching">매칭 중</option>
-                  <option value="completed">처리 완료</option>
-                </select>
-              </td>
-            </tr>
-            <tr v-if="reports.length === 0">
-              <td colspan="7" class="empty-row">접수된 분실물 신고 내역이 없습니다.</td>
-            </tr>
-          </tbody>
+  <tr v-for="report in reports" :key="report.id">
+    <td><strong>#{{ report.id }}</strong></td>
+    <td>{{ report.user_name }}</td>
+    <td>{{ report.user_email }}</td>
+    <td><span class="badge category">{{ getCategoryLabel(report.category) }}</span></td>
+    <td>{{ report.lost_location }}</td>
+    <td class="text-left">{{ report.lost_description }}</td>
+    <td>
+      <select 
+        v-model="report.status" 
+        @change="updateStatus(report.id, report.status)"
+        :class="['status-select', report.status]"
+      >
+        <option value="searching">찾는중</option>
+        <option value="matched">매칭완료</option>
+        <option value="completed">수령완료</option>
+      </select>
+    </td>
+  </tr>
+  <tr v-if="reports.length === 0">
+    <td colspan="7" class="empty-row">접수된 분실물 신고 내역이 없습니다.</td>
+  </tr>
+</tbody>
         </table>
       </div>
     </main>
@@ -61,17 +61,14 @@ const reports = ref([]);
 const isLoading = ref(true);
 const errorMessage = ref('');
 
-// 1. 전체 분실물 신고 목록 가져오기 (API 연동)
+// 기존 가짜 데이터 호출 주소를 실제 백엔드 manage API 주소로 변경합니다.
 const fetchReports = async () => {
   try {
     isLoading.value = true;
-    const response = await axios.get('/api/reports/');
+    const response = await axios.get('/api/reports/manage/');
     
-    // 백엔드 응답 규격이 { status: 'ok', data: [...] } 일 경우 분기 처리
     if (response.data && response.data.status === 'ok') {
       reports.value = response.data.data;
-    } else {
-      reports.value = response.data; // 일반 배열 형태일 경우
     }
   } catch (error) {
     console.error('대시보드 데이터 로드 실패:', error);
@@ -81,22 +78,30 @@ const fetchReports = async () => {
   }
 };
 
-// 2. 관리자가 직접 신고 상태 업데이트하기
 const updateStatus = async (reportId, newStatus) => {
   try {
-    const response = await axios.patch(`/api/reports/${reportId}/`, {
+    // PATCH 요청 주소 역시 manage/ 경로를 경유하도록 수정합니다.
+    await axios.patch(`/api/reports/manage/${reportId}/`, {
       status: newStatus
     });
-    
-    if (response.status === 200) {
-      alert(`#${reportId}번 신고 상태가 성공적으로 변경되었습니다.`);
-    }
+    alert(`#${reportId}번 신고 상태가 성공적으로 변경되었습니다.`);
   } catch (error) {
     console.error('상태 업데이트 실패:', error);
     alert('상태 변경 중 오류가 발생했습니다. 다시 시도해 주세요.');
-    // 실패 시 화면을 원래 상태로 되돌리기 위해 새로고침
     fetchReports();
   }
+};
+
+// 영어 소문자로 저장된 카테고리명을 테이블에 한국어로 출력하기 위한 함수
+const getCategoryLabel = (category) => {
+  const categories = {
+    card: '카드',
+    glasses: '안경',
+    wallet: '지갑',
+    phone: '휴대폰',
+    etc: '기타'
+  };
+  return categories[category] || category;
 };
 
 onMounted(() => {
