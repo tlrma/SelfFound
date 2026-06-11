@@ -1,4 +1,9 @@
 <template>
+  <div class="navigation-header">
+    <button type="button" @click="$router.push({ name: 'UserAuth' })" class="btn-history">
+      📋 내 신고 기록 조회
+    </button>
+  </div>
   <div class="report-form-container">
     <h2>분실물 신고서 작성</h2>
     <form @submit.prevent="submitReport">
@@ -95,6 +100,24 @@ const submitReport = async () => {
 </script>
 
 <style scoped>
+.navigation-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+.btn-history {
+  background-color: #4a5568;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-history:hover {
+  background-color: #2d3748;
+}
 .report-form-container {
   max-width: 600px;
   margin: 0 auto;
