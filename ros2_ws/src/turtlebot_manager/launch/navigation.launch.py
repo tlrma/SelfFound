@@ -4,6 +4,7 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 def generate_launch_description():
     pkg_dir = get_package_share_directory('turtlebot_manager')
@@ -73,11 +74,19 @@ def generate_launch_description():
         )
     )
 
+    navigation_server = Node(
+        package='turtlebot_manager',
+        executable='navigation_server',
+        name='navigation_server',
+        output='screen',
+    )
+
     return LaunchDescription([
         gzserver,
         gzclient,
         robot_state_publisher,
         spawn_turtlebot,
         TimerAction(period=5.0, actions=[nav2]),
+        TimerAction(period=8.0, actions=[navigation_server]),
         #TimerAction(period=7.0, actions=[rviz2]),
     ])
