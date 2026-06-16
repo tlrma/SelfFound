@@ -1,12 +1,10 @@
 """
 분실물 매칭 알고리즘 프로토타입
-- 이미지 설명 생성: gpt-4o-mini  (2 크레딧, 멀티모달)
-- 텍스트 유사도:   gpt-5-nano    (1 크레딧, 텍스트)
+- 텍스트 유사도: gpt-5-nano (1 크레딧, 텍스트)
 """
 
 import json
 import re
-import base64
 import datetime
 import os
 import requests
@@ -88,45 +86,6 @@ def _parse_json(text: str) -> dict:
     return json.loads(clean)
 
 
-# ─── 전처리: 사진 → 자연어 설명 ────────────────────────────────────────────────
-
-def generate_item_description(image_path: str) -> str:
-    """
-    분실물 사진 → 한국어 자연어 설명 (gpt-4o-mini, 2 크레딧).
-    item 등록 시 한 번만 호출해 DB에 저장해두면 매칭 때 재사용 가능.
-    """
-    ext       = image_path.rsplit(".", 1)[-1].lower()
-    mime_map  = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
-                 "png": "image/png",  "webp": "image/webp"}
-    mime_type = mime_map.get(ext, "image/jpeg")
-
-    with open(image_path, "rb") as f:
-        image_b64 = base64.b64encode(f.read()).decode("utf-8")
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:{mime_type};base64,{image_b64}"
-                    },
-                },
-                {
-                    "type": "text",
-                    "text": (
-                        "이 분실물을 한국어로 간결하게 설명해주세요. "
-                        "색상, 재질, 크기, 특징적인 부분을 포함해 2~3문장으로만 답하세요. "
-                        "설명 외 다른 말은 하지 마세요."
-                    ),
-                },
-            ],
-        }
-    ]
-    return _call_openai("gpt-4o-mini", messages).strip()
-
-
 # ─── 개별 점수 함수 ────────────────────────────────────────────────────────────
 
 def score_time(item: ItemData, report: ReportData) -> float:
@@ -164,16 +123,16 @@ def score_description_llm(item: ItemData, report: ReportData) -> tuple[float, st
     """
     prompt = f"""아래 두 물건이 같은 물건인지 판단해주세요.
 
-[습득된 물건]
-카테고리: {item.category}
-설명: {item.description}
+    [습득된 물건]
+    카테고리: {item.category}
+    설명: {item.description}
 
-[분실 신고 묘사]
-카테고리: {report.category}
-신고자 묘사: {report.description}
+    [분실 신고 묘사]
+    카테고리: {report.category}
+    신고자 묘사: {report.description}
 
-반드시 아래 JSON 형식으로만 응답하세요. 다른 말은 절대 하지 마세요.
-{{"score": 0에서 100 사이 정수, "reasoning": "한국어로 판단 근거 1~2문장"}}"""
+    반드시 아래 JSON 형식으로만 응답하세요. 다른 말은 절대 하지 마세요.
+    {{"score": 0에서 100 사이 정수, "reasoning": "한국어로 판단 근거 1~2문장"}}"""
 
     messages = [{"role": "user", "content": prompt}]
     raw      = _call_openai("gpt-5-nano", messages)

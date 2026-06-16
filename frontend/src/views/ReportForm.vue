@@ -21,11 +21,11 @@
         <label for="category">물품 카테고리</label>
         <select id="category" v-model="formData.category" required>
           <option value="" disabled>카테고리를 선택해주세요</option>
-          <option value="card">카드</option>
-          <option value="glasses">안경</option>
-          <option value="wallet">지갑</option>
-          <option value="phone">휴대폰</option>
-          <option value="etc">기타</option>
+          <option value="Card">카드</option>
+          <option value="Glasses">안경</option>
+          <option value="Wallet">지갑</option>
+          <option value="Phone">휴대폰</option>
+          <option value="Etc">기타</option>
         </select>
       </div>
 
@@ -91,9 +91,11 @@ const submitReport = async () => {
     });
 
     if (response.status === 200 || response.status === 201) {
-      // 성공 시 백엔드로부터 생성된 ID(접수번호)를 받아 완료 페이지로 이동
       const reportId = response.data.report.id;
-      router.push({ name: 'ReportStatus', params: { id: reportId } });
+      const topMatch = response.data.top_match;
+      const matched = topMatch ? 'true' : 'false';
+      const reasoning = topMatch?.reasoning ?? '';
+      router.push({ name: 'ReportStatus', params: { id: reportId }, query: { matched, reasoning } });
     }
   } catch (error) {
     console.error('신고 접수 실패:', error);

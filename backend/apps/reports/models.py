@@ -9,14 +9,14 @@ class Report(models.Model):
 
     # items.Item과 동일한 카테고리 선택 옵션을 적용합니다.
     CATEGORY_CHOICES = [
-        ('card', '카드'),
-        ('glasses', '안경'),
-        ('wallet', '지갑'),
-        ('phone', '휴대폰'),
-        ('keys', '열쇠'),
-        ('sunglasses', '선글라스'),
-        ('watch', '시계'),
-        ('etc', '기타'),
+        ('Card', '카드'),
+        ('Glasses', '안경'),
+        ('Wallet', '지갑'),
+        ('Phone', '휴대폰'),
+        ('Keys', '열쇠'),
+        ('Sunglasses', '선글라스'),
+        ('Watch', '시계'),
+        ('Etc', '기타'),
     ]
 
     user_name = models.CharField(max_length=50)

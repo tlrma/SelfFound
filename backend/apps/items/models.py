@@ -1,7 +1,6 @@
 from django.db import models
 
 class Item(models.Model):
-    # 사용자가 정의한 7개 카테고리로 변경
     CATEGORY_CHOICES = [
         ('Card', '카드'),
         ('Glasses', '안경'),
@@ -10,6 +9,7 @@ class Item(models.Model):
         ('Sunglasses', '선글라스'),
         ('Wallet', '지갑'),
         ('Watch', '시계'),
+        ('Etc', '기타'),
     ]
     
     STATUS_CHOICES = [

@@ -11,6 +11,7 @@
 
 import sys
 import os
+import glob
 import json
 import cv2
 import numpy as np
@@ -21,9 +22,17 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
-VISION_PATH = '/home/ssafy/finalPJT/SelfFound/vision'
-VISION_VENV_SITE = '/home/ssafy/finalPJT/SelfFound/vision/.venv/lib/python3.10/site-packages'
-sys.path.insert(0, VISION_VENV_SITE)
+# vision_path: 환경변수 SELFFOUND_VISION_PATH 또는 기본값
+# params.yaml 의 vision_path 와 맞춰서 설정하세요
+VISION_PATH = os.environ.get(
+    'SELFFOUND_VISION_PATH',
+    '/home/ssafy/finalPJT/SelfFound/vision',
+)
+
+# .venv site-packages 자동 탐색 (Python 버전 무관)
+_venv_sites = glob.glob(os.path.join(VISION_PATH, '.venv/lib/python3*/site-packages'))
+if _venv_sites:
+    sys.path.insert(0, _venv_sites[0])
 sys.path.insert(0, VISION_PATH)
 from pipeline.pipeline import VisionPipeline
 
@@ -115,11 +124,10 @@ class LostItemDetectorNode(Node):
             return None
 
     def _post_to_backend(self, result: dict, stt_text: str, photo_path: str):
-        colors = ', '.join(c['name'] for c in result.get('colors', []))
         payload = {
             'category': result['category'],
             'confidence': result['confidence'],
-            'description': f'색상: {colors}',
+            'description': result.get('description', ''),
             'photo_path': photo_path,
             'found_location': stt_text,
         }

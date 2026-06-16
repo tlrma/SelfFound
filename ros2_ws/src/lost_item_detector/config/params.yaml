@@ -1,0 +1,25 @@
+# ================================================================
+# 팀원 설정 파일 — 로컬 환경에 맞게 아래 경로들을 수정하세요
+# ================================================================
+
+lost_item_detector:
+  ros__parameters:
+    # [필수] vision 디렉토리 절대 경로
+    vision_path: '/home/ssafy/finalPJT/SelfFound/vision'
+    # YOLO 모델 파일 경로 (.pt)
+    model_path: '/home/ssafy/finalPJT/SelfFound/vision/best.pt'
+    # Django 백엔드 주소
+    backend_url: 'http://localhost:5173/api/items/'
+    # 캡처 이미지 저장 폴더
+    photo_save_dir: '/tmp/lost_items'
+
+lost_item_detector_mock:
+  ros__parameters:
+    # [필수] vision 디렉토리 절대 경로
+    vision_path: '/home/ssafy/finalPJT/SelfFound/vision'
+    # YOLO 모델 파일 경로 (.pt)
+    model_path: '/home/ssafy/finalPJT/SelfFound/vision/best.pt'
+    # Django 백엔드 주소
+    backend_url: 'http://localhost:5173/api/items/'
+    # 테스트에 사용할 이미지 경로
+    image_path: '/home/ssafy/finalPJT/SelfFound/test-kpass.jpg'
