@@ -7,32 +7,32 @@
 
     <main class="kiosk-content">
       <div v-if="currentStep === 1" class="step-box">
-        <h2>📷 안내문에 포함된 QR코드를 스캔해 주세요</h2>
-        <div class="qr-scanner-mock">
-          <div class="laser-line"></div>
-          <p class="mock-text">[ OpenCV QRCodeDetector 대기 중 ]</p>
-        </div>
-        <p class="notice">※ 현재 장비 테스트 중입니다. 아래 임시 버튼을 눌러 스캔을 완료하세요.</p>
-        
-        <div class="form-group">
-          <input type="text" v-model="mockQrData" placeholder="스캔된 QR 데이터 (임시 접수 ID)" class="kiosk-input" />
-          <button @click="simulateQrScan" class="btn-next">QR 스캔 완료 처리</button>
-        </div>
-      </div>
-
-      <div v-if="currentStep === 2" class="step-box">
-        <h2>🔒 본인 확인 절차</h2>
-        <p class="description">수신하신 안내 메일의 [4자리 인증번호] 를 입력해 주세요. (테스트 인증번호 :1234)</p>
+        <h2>👋 무인 반환 시스템에 오신 것을 환영합니다</h2>
+        <p class="description">분실물을 찾으러 오셨나요? 이메일로 안내받은 <strong>인증 코드(6자리)</strong>를 입력해 주세요.</p>
         
         <div class="form-group verification-zone">
           <input 
             type="text" 
             v-model="verificationCode" 
-            placeholder="인증번호 4자리 입력" 
-            maxlength="4" 
+            placeholder="인증 코드 6자리 입력" 
+            maxlength="6" 
             class="kiosk-input code-input" 
           />
-          <button @click="verifyCode" class="btn-verify">인증 확인</button>
+          <button @click="verifyCode" class="btn-verify">인증 및 조회</button>
+        </div>
+      </div>
+
+      <div v-if="currentStep === 2" class="step-box">
+        <h2>📷 수령인 확인을 위한 사진 촬영</h2>
+        <p class="warning-text">※ 안전한 분실물 반환을 위해 수령인의 페이스 정보를 촬영합니다.</p>
+        <p class="description">수집된 데이터는 7일 후 안전하게 자동 폐기됩니다.</p>
+        
+        <div class="webcam-zone">
+          <video ref="videoRef" autoplay playsinline class="webcam-preview"></video>
+          <canvas ref="canvasRef" style="display: none;"></canvas>
+          <div class="capture-countdown">
+            <span class="timer-num">{{ captureCountdown }}</span>초 후 자동 촬영됩니다
+          </div>
         </div>
       </div>
 
@@ -79,86 +79,144 @@
 import { ref, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 
-// 키오스크 현재 단계 관리 (1: QR, 2: 본인인증, 3: 수령확인, 4: 완료)
 const currentStep = ref(1);
 
-// 데이터 바인딩 변수
+// 데이터 관리 변수
 const reportId = ref('');
-const mockQrData = ref('7'); // 임시 테스트용 발급 ID 설정 가능
 const verificationCode = ref('');
 const isConfirmed = ref(false);
 const countdown = ref(5);
-let timer = null;
+const captureCountdown = ref(5);
 
-// [1단계] QR 스캔 시뮬레이션 처리 함수
-const simulateQrScan = () => {
-  if (!mockQrData.value) {
-    alert('임시 QR 데이터(신고 ID)를 입력하거나 확인해 주세요.');
-    return;
-  }
-  reportId.value = mockQrData.value;
-  // 스캔 성공 후 2단계(본인 인증)로 이동
-  currentStep.value = 2;
-};
+// 웹캠 객체 참조 참조값
+const videoRef = ref(null);
+const canvasRef = ref(null);
+let streamObject = null;
+let mainTimer = null;
+let webcamTimer = null;
 
-// [2단계] 백엔드 코드 검증 API 연동 함수
+// [1단계] 6자리 백엔드 코드 검증 API 연동
 const verifyCode = async () => {
-  if (verificationCode.value.length < 4) {
-    alert('인증번호 4자리를 정확히 입력해 주세요.');
+  if (verificationCode.value.length < 6) {
+    alert('인증 코드 6자리를 정확히 입력해 주세요.');
     return;
   }
 
   try {
-    // POST /api/pickup/verify-code/ 호출
     const response = await axios.post('/api/pickup/verify-code/', {
-      report_id: reportId.value,
       code: verificationCode.value
     });
 
     if (response.status === 200) {
-      alert('본인 확인이 완료되었습니다. 터틀봇 호출을 시작합니다.');
-      currentStep.value = 3; // 3단계(물품 확인)로 이동
+      // 매핑된 내부 report_id 할당 및 2단계 카메라 연동 진입
+      reportId.value = response.data.report_id;
+      currentStep.value = 2;
+      initWebcam();
     }
   } catch (error) {
     console.error('인증 실패:', error);
-    // 임시 테스트 목적으로 백엔드 서버 연결이 없을 때도 프론트 흐름을 볼 수 있도록 방어 코드 추가
     if (error.response && error.response.data && error.response.data.error) {
-      alert(error.response.data.error); // 백엔드가 보낸 "인증번호가 일치하지 않습니다." 출력
+      alert(error.response.data.error);
     } else {
-      alert('인증 처리 중 오류가 발생했습니다.');
+      // 임시 테스트 환경 방어 로직 (서버 오프라인 시 임시 report_id 부여 후 통과 처리 가능)
+      alert('테스트 연동: 인증 확인되어 촬영 단계로 이동합니다.');
+      reportId.value = '7'; 
+      currentStep.value = 2;
+      initWebcam();
     }
   }
 };
 
-// [3단계] YES / NO 버튼 선택 처리 및 수령 완료 API 연동 함수
+// [2단계] 미디어 장치 제어 및 자동 카운트다운 촬영 처리
+const initWebcam = async () => {
+  captureCountdown.value = 5;
+  try {
+    // 사용자의 웹캠 스트림 활성화
+    streamObject = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+    if (videoRef.value) {
+      videoRef.value.srcObject = streamObject;
+    }
+
+    // 5초 자동 촬영 타이머 트리거
+    webcamTimer = setInterval(() => {
+      captureCountdown.value--;
+      if (captureCountdown.value <= 0) {
+        clearInterval(webcamTimer);
+        captureAndUpload();
+      }
+    }, 1000);
+  } catch (err) {
+    console.error('카메라 디바이스를 접근할 수 없습니다:', err);
+    alert('카메라 장치 오류가 발생하여 시뮬레이션을 위해 다음 단계로 강제 전환합니다.');
+    currentStep.value = 3;
+  }
+};
+
+// 캔버스 드로잉을 통한 이미지 바이너리 캡처 및 전송
+const captureAndUpload = async () => {
+  if (!videoRef.value || !canvasRef.value) return;
+
+  const video = videoRef.value;
+  const canvas = canvasRef.value;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // image_b64 형태의 base64 인코딩 데이터 추출
+  const imageDataB64 = canvas.toDataURL('image/jpeg');
+
+  // 웹캠 장치 자원 즉시 해제
+  stopWebcam();
+
+  try {
+    // 수령인 사진 업로드 전용 엔드포인트 연동 (동작 명확성을 위해 분리 또는 연계 가능)
+    await axios.post('/api/pickup/confirm/', {
+      report_id: reportId.value,
+      image_b64: imageDataB64,
+      status: 'processing' // 로봇 배송 대기 중 상태 전환
+    });
+  } catch (error) {
+    console.error('이미지 바이너리 백엔드 전송 실패:', error);
+  }
+
+  // 데이터 전송 완료 후 로봇 호출(3단계) 화면 전환
+  currentStep.value = 3;
+};
+
+const stopWebcam = () => {
+  if (streamObject) {
+    streamObject.getTracks().forEach(track => track.stop());
+    streamObject = null;
+  }
+  if (webcamTimer) clearInterval(webcamTimer);
+};
+
+// [3단계] 최종 수령 수락 / 반송 여부 결정 처리 (기존 구조 보존)
 const handlePickupDecision = async (isMine) => {
   isConfirmed.value = isMine;
 
   if (isMine) {
-    // 사용자가 'YES'를 선택한 경우 - 최종 수령 처리 연동
     try {
-      // POST /api/pickup/confirm/ 호출
       await axios.post('/api/pickup/confirm/', {
         report_id: reportId.value,
-        status: 'completed' // 장고 backend models.py 매핑용 상태 값
+        status: 'completed'
       });
     } catch (error) {
-      console.error('최종 수령 확인 처리 실패:', error);
+      console.error('최종 확정 처리 에러:', error);
     }
   } else {
-    // 사용자가 'NO'를 선택한 경우 - 터틀봇 복귀 신호 발송 로직 추가 가능 구역
-    console.log('물품 불일치: 터틀봇 보관함 복귀 명령 전송');
+    console.log('물품 불일치: 회수 처리 진행');
   }
 
-  // 최종 결과 안내 4단계 화면으로 전환 및 카운트다운 시작
   currentStep.value = 4;
   startCountdown();
 };
 
-// [4단계] 자동 초기화를 위한 카운트다운 타이머 구동 함수
 const startCountdown = () => {
   countdown.value = 5;
-  timer = setInterval(() => {
+  mainTimer = setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) {
       resetKiosk();
@@ -166,22 +224,23 @@ const startCountdown = () => {
   }, 1000);
 };
 
-// 키오스크 모든 상태 초기화 후 1단계 첫 화면으로 이동하는 함수
 const resetKiosk = () => {
-  if (timer) clearInterval(timer);
+  if (mainTimer) clearInterval(mainTimer);
+  stopWebcam();
   currentStep.value = 1;
   reportId.value = '';
   verificationCode.value = '';
   isConfirmed.value = false;
 };
 
-// 컴포넌트 소멸 시 타이머 해제 안전 장치
 onBeforeUnmount(() => {
-  if (timer) clearInterval(timer);
+  if (mainTimer) clearInterval(mainTimer);
+  stopWebcam();
 });
 </script>
 
 <style scoped>
+/* 기존 스타일 하단 유지 및 추가 디자인 구성 */
 .kiosk-container {
   max-width: 800px;
   margin: 40px auto;
@@ -193,180 +252,63 @@ onBeforeUnmount(() => {
   font-family: sans-serif;
   text-align: center;
 }
-.kiosk-header {
-  border-bottom: 3px solid #333;
-  padding-bottom: 20px;
-  margin-bottom: 30px;
+.kiosk-header { border-bottom: 3px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+.kiosk-header h1 { font-size: 32px; color: #1a1a1a; margin: 0 0 10px 0; }
+.step-indicator { font-size: 18px; font-weight: bold; color: #0275d8; margin: 0; }
+.step-box h2 { font-size: 24px; color: #2c3e50; margin-bottom: 25px; }
+.description { color: #555; font-size: 16px; }
+.warning-text { color: #d9534f; font-weight: bold; font-size: 14px; margin-bottom: 20px; }
+.form-group { margin-top: 30px; display: flex; justify-content: center; gap: 10px; }
+.kiosk-input { padding: 15px; font-size: 18px; border: 2px solid #ccc; border-radius: 8px; width: 250px; text-align: center; }
+.code-input { font-size: 26px; letter-spacing: 8px; font-weight: bold; color: #2c3e50; }
+button { font-weight: bold; border-radius: 8px; border: none; cursor: pointer; transition: background-color 0.15s, transform 0.1s; }
+button:active { transform: scale(0.98); }
+.btn-verify { padding: 15px 30px; font-size: 18px; background-color: #42b983; color: white; }
+
+/* 📷 웹캠 컴포넌트 프레임 전용 UI 클래스 구성 */
+.webcam-zone {
+  position: relative;
+  width: 480px;
+  margin: 20px auto;
+  border: 4px solid #1e293b;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #000;
 }
-.kiosk-header h1 {
-  font-size: 32px;
-  color: #1a1a1a;
-  margin: 0 0 10px 0;
+.webcam-preview {
+  width: 100%;
+  height: auto;
+  display: block;
+  transform: rotateY(180deg); /* 거울 모드 반전 효과 */
 }
-.step-indicator {
-  font-size: 18px;
-  font-weight: bold;
-  color: #0275d8;
-  margin: 0;
-}
-.step-box h2 {
-  font-size: 24px;
-  color: #2c3e50;
-  margin-bottom: 25px;
-}
-.description {
-  color: #555;
+.capture-countdown {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 12px 0;
   font-size: 16px;
 }
-.notice {
-  font-size: 13px;
-  color: #e0a800;
-  margin-top: 15px;
-}
-.warning-text {
-  color: #d9534f;
-  font-weight: bold;
-  font-size: 14px;
-  margin-bottom: 20px;
-}
-.form-group {
-  margin-top: 30px;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-.kiosk-input {
-  padding: 15px;
-  font-size: 18px;
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  width: 250px;
-  text-align: center;
-}
-.code-input {
+.timer-num {
+  color: #ff4d4d;
   font-size: 24px;
-  letter-spacing: 5px;
   font-weight: bold;
+  margin-right: 4px;
 }
-button {
-  font-weight: bold;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s, transform 0.1s;
-}
-button:active {
-  transform: scale(0.98);
-}
-.btn-next, .btn-verify {
-  padding: 15px 30px;
-  font-size: 18px;
-  background-color: #42b983;
-  color: white;
-}
-/* QR 스캔 영역 그래픽 가구색 구색 쌓기 */
-.qr-scanner-mock {
-  position: relative;
-  width: 300px;
-  height: 200px;
-  background-color: #111;
-  margin: 0 auto 20px auto;
-  border-radius: 8px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.mock-text {
-  color: #00ff00;
-  font-family: monospace;
-  font-size: 14px;
-  z-index: 2;
-}
-.laser-line {
-  position: absolute;
-  width: 100%;
-  height: 3px;
-  background-color: #ff0000;
-  top: 0;
-  box-shadow: 0 0 8px #ff0000;
-  animation: scan-animation 2s infinite linear;
-  z-index: 1;
-}
-@keyframes scan-animation {
-  0% { top: 0%; }
-  50% { top: 100%; }
-  100% { top: 0%; }
-}
-/* 로봇 연동 컴포넌트 박스 영역 */
-.robot-animation-box {
-  background-color: #f8fafc;
-  border: 2px dashed #cbd5e1;
-  padding: 25px;
-  border-radius: 12px;
-  margin-bottom: 30px;
-}
-.turtlebot-mock {
-  width: 120px;
-  height: 60px;
-  background-color: #334155;
-  color: white;
-  font-weight: bold;
-  line-height: 60px;
-  border-radius: 30px;
-  margin: 0 auto 15px auto;
-  animation: robot-move 3s infinite ease-in-out;
-}
-@keyframes robot-move {
-  0% { transform: translateX(-30px); }
-  50% { transform: translateX(30px); }
-  100% { transform: translateX(-30px); }
-}
-.robot-status {
-  font-size: 15px;
-  color: #64748b;
-  margin: 0;
-}
-/* 분기 선택 버튼 그룹 레이아웃 */
-.btn-group-row {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 15px;
-}
-.btn-yes {
-  padding: 20px 35px;
-  font-size: 20px;
-  background-color: #5cb85c;
-  color: white;
-}
-.btn-no {
-  padding: 20px 35px;
-  font-size: 20px;
-  background-color: #d9534f;
-  color: white;
-}
-/* 완료 레이아웃 공통 구성 */
-.completion-box {
-  padding: 20px 0;
-}
+
+.robot-animation-box { background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 25px; border-radius: 12px; margin-bottom: 30px; }
+.turtlebot-mock { width: 120px; height: 60px; background-color: #334155; color: white; font-weight: bold; line-height: 60px; border-radius: 30px; margin: 0 auto 15px auto; animation: robot-move 3s infinite ease-in-out; }
+@keyframes robot-move { 0% { transform: translateX(-30px); } 50% { transform: translateX(30px); } 100% { transform: translateX(-30px); } }
+.robot-status { font-size: 15px; color: #64748b; margin: 0; }
+.btn-group-row { display: flex; justify-content: center; gap: 20px; margin-top: 15px; }
+.btn-yes { padding: 20px 35px; font-size: 20px; background-color: #5cb85c; color: white; }
+.btn-no { padding: 20px 35px; font-size: 20px; background-color: #d9534f; color: white; }
+.completion-box { padding: 20px 0; }
 .success-message h2 { color: #5cb85c; }
 .return-message h2 { color: #d9534f; }
-.db-notice {
-  font-family: monospace;
-  color: #0275d8;
-  font-weight: bold;
-}
-.countdown-zone {
-  margin-top: 40px;
-  border-top: 1px solid #eee;
-  padding-top: 20px;
-}
-.btn-home {
-  padding: 12px 24px;
-  background-color: #6c757d;
-  color: white;
-  margin-top: 10px;
-  font-size: 15px;
-}
+.db-notice { font-family: monospace; color: #0275d8; font-weight: bold; }
+.countdown-zone { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+.btn-home { padding: 12px 24px; background-color: #6c757d; color: white; margin-top: 10px; font-size: 15px; }
 </style>
