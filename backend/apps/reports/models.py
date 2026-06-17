@@ -29,5 +29,8 @@ class Report(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='searching')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    auth_code = models.CharField(max_length=6, blank=True, null=True, unique=True)
+    receiver_image = models.ImageField(upload_to='pickup_photos/', blank=True, null=True)
+
     class Meta:
         db_table = 'reports'  #

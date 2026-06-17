@@ -5,6 +5,7 @@ import AdminDashboard from '../views/AdminDashboard.vue'
 import UserAuth from '../views/UserAuth.vue'
 import UserReportList from '../views/UserReportList.vue'
 import PickupKiosk from '@/views/PickupKiosk.vue';
+import DepositKiosk from '@/views/DepositKiosk.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -35,9 +36,14 @@ const router = createRouter({
       component: UserReportList 
     },
     {
-      path: '/kiosk',
+      path: '/kiosk/pickup',
       name: 'PickupKiosk',
       component: PickupKiosk
+    },
+    {
+      path: '/kiosk/deposit',
+      name: 'DepositKiosk',
+      component: DepositKiosk
     }
   ]
 })
