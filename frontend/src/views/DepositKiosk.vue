@@ -2,7 +2,7 @@
   <div class="kiosk-container">
     <header class="kiosk-header">
       <h1>🤖 분실물 무인 접수 시스템</h1>
-      <p class="step-indicator" v-if="currentStep > 1">단계: {{ currentStep - 1 }} / 2</p>
+      <p class="step-indicator" v-if="currentStep > 1 && currentStep < 4">단계: {{ currentStep - 1 }} / 2</p>
     </header>
 
     <main class="kiosk-content">
@@ -34,21 +34,32 @@
         </div>
 
         <div class="form-group">
-          <button @click="completeRegistration" class="btn-complete">💬 말씀 완료 (접수하기)</button>
+          <button @click="completeRegistration" class="btn-complete">💬 말씀 완료 (다음 단계)</button>
         </div>
       </div>
 
-      <div v-if="currentStep === 3" class="step-box completion-box">
-        <div class="success-icon">✅</div>
-        <h2>접수가 완료되었습니다!</h2>
+      <div v-if="currentStep === 3" class="step-box instruction-box">
+        <h2>물건을 올려놓아 주세요</h2>
         
         <div class="conveyor-instruction">
-          <p class="instruction-text">🤖 <strong>키오스크 앞의 컨베이어 벨트</strong> 위에 물건을 올려놓아 주세요.</p>
+          <p class="instruction-text">🤖 <strong>키오스크 앞의 컨베이어 벨트</strong> 위에 물건을 올려놓으신 후,<br>아래의 확인 버튼을 눌러주세요.</p>
           <div class="conveyor-graphic">
             <div class="arrow-animation">👇</div>
             <div class="belt-line"></div>
           </div>
         </div>
+
+        <div class="form-group">
+          <button @click="confirmAndRunConveyor" class="btn-complete confirm-btn" :disabled="isProcessing">
+            {{ isProcessing ? '컨베이어 작동 중...' : '✅ 물건을 올려놓았습니다 (확인)' }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="currentStep === 4" class="step-box completion-box">
+        <div class="success-icon">💖</div>
+        <h2>접수가 완벽하게 끝났습니다!</h2>
+        <p class="description">소중한 물건을 맡겨주셔서 진심으로 감사드립니다.<br>주인이 꼭 찾을 수 있도록 안전하게 보관하겠습니다.</p>
 
         <div class="countdown-zone">
           <p><strong>{{ countdown }}초 후</strong> 첫 화면으로 자동으로 돌아갑니다.</p>
@@ -62,27 +73,55 @@
 <script setup>
 import { ref, onBeforeUnmount } from 'vue';
 
-// 단계 관리 (1: 초기화면, 2: 음성인식, 3: 접수완료 및 컨베이어)
+// 단계 관리 (1: 초기화면, 2: 음성인식, 3: 컨베이어 투입 대기, 4: 감사인사 및 종료)
 const currentStep = ref(1);
 const isRecording = ref(false);
+const isProcessing = ref(false); // API 호출 중 버튼 중복 클릭 방지
 const countdown = ref(5);
 
 let timer = null;
 
-// [1단계 -> 2단계] 화면 전환 및 마이크 활성화 시뮬레이션
+// [1단계 -> 2단계]
 const nextStep = () => {
   currentStep.value = 2;
   isRecording.value = true;
 };
 
-// [2단계 -> 3단계] 음성인식 완료 및 5초 타이머 구동
+// [2단계 -> 3단계] 음성인식 완료 후 타이머 없이 3단계 대기
 const completeRegistration = () => {
   isRecording.value = false;
   currentStep.value = 3;
-  startCountdown();
 };
 
-// [3단계] 자동 복귀 카운트다운 타이머
+// [3단계 -> 4단계] 확인 버튼 클릭 시 API 호출 및 화면 전환
+const confirmAndRunConveyor = async () => {
+  isProcessing.value = true;
+  
+  try {
+    // 앞서 작성하신 Django 백엔드의 컨베이어 제어 API 주소로 변경해 주세요.
+    // (예: http://127.0.0.1:8000/api/robot_tasks/conveyor/)
+    const apiUrl = '/api/robot_tasks/conveyor/';
+    
+    await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    });
+    console.log("컨베이어 작동 API 호출 완료");
+
+  } catch (error) {
+    console.error("API 통신 에러:", error);
+    // 에러가 나더라도 키오스크 흐름이 멈추지 않도록 4단계로 진행시킵니다.
+  } finally {
+    isProcessing.value = false;
+    currentStep.value = 4;
+    startCountdown();
+  }
+};
+
+// [4단계] 자동 복귀 카운트다운 타이머
 const startCountdown = () => {
   countdown.value = 5;
   timer = setInterval(() => {
@@ -98,6 +137,7 @@ const resetKiosk = () => {
   if (timer) clearInterval(timer);
   currentStep.value = 1;
   isRecording.value = false;
+  isProcessing.value = false;
   countdown.value = 5;
 };
 
@@ -144,6 +184,7 @@ onBeforeUnmount(() => {
   color: #4a4e69;
   font-size: 18px;
   margin-bottom: 10px;
+  line-height: 1.5;
 }
 
 /* 📦 1단계: 초기 화면 스타일 */
@@ -228,10 +269,19 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: transform 0.1s, background-color 0.2s;
 }
 .btn-complete:active {
   transform: scale(0.97);
+}
+.btn-complete:disabled {
+  background-color: #a8dadc;
+  cursor: not-allowed;
+  transform: none;
+}
+.confirm-btn {
+  background-color: #2a9d8f;
+  margin-top: 10px;
 }
 
 /* 🔊 음성 오디오 파형 그래픽 모크 */
@@ -253,7 +303,7 @@ onBeforeUnmount(() => {
 .wave-container .bar:nth-child(4) { animation-delay: 0.45s; }
 .wave-container .bar:nth-child(5) { animation-delay: 0.6s; }
 
-/* ✅ 3단계: 컨베이어 벨트 투입 안내 스타일 */
+/* ✅ 3단계 & 4단계: 안내 및 완료 그래픽 스타일 */
 .success-icon {
   font-size: 70px;
   margin-bottom: 10px;
@@ -269,20 +319,21 @@ onBeforeUnmount(() => {
   font-size: 20px;
   color: #1d3557;
   margin: 0;
+  line-height: 1.5;
 }
 .conveyor-graphic {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 20px; /* 텍스트와 그래픽 사이의 여백 추가 */
+  margin-top: 20px;
 }
 .arrow-animation {
   font-size: 30px;
-  margin-bottom: 10px; /* 벨트와의 간격 추가 */
+  margin-bottom: 10px;
   animation: bounce 1s infinite alternate;
 }
 .belt-line {
-  width: 200px; /* 벨트 길이를 고정하여 중앙 정렬 유지 */
+  width: 200px;
   height: 12px;
   background: repeating-linear-gradient(90deg, #1d3557, #1d3557 15px, #457b9d 15px, #457b9d 30px);
   border-radius: 6px;
