@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/items/', include('apps.items.urls')),
     path('api/reports/', include('apps.reports.urls')),
     path('api/pickup/', include('apps.pickup.urls')),
+    path('api/robot_tasks/', include('apps.robot_tasks.urls')),
 ]
