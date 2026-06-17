@@ -23,10 +23,17 @@ class Item(models.Model):
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     confidence = models.FloatField(default=0.0)  # YOLO 인식 신뢰도
     description = models.TextField(blank=True, null=True)  # 상세 묘사
-    photo_path = models.CharField(max_length=255, blank=True, null=True)  #
-    found_location = models.CharField(max_length=100, blank=True, null=True)  #
+    
+    # CV 연동을 위해 수정된 부분
+    image_b64 = models.TextField(blank=True, null=True)  # 기존 photo_path 대신 base64 데이터 직접 저장
+    found_at = models.DateTimeField(blank=True, null=True) # STT 결과
+    found_location = models.CharField(max_length=100, blank=True, null=True) # STT 결과
+    
+    # 분실물이 보관된 창고 위치
+    warehouse_location = models.CharField(max_length=50, blank=True, null=True)
+    
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='stored')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'items'  #
+        db_table = 'items'
