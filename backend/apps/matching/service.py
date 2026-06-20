@@ -5,6 +5,8 @@ Item/Report DB 인스턴스를 받아 매칭 점수를 계산하고 MatchResult�
 
 import sys
 import datetime
+import random
+import string
 from pathlib import Path
 
 # test/matcher.py 임포트
@@ -12,12 +14,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'test-matching'))
 from matcher import (
     ItemData, ReportData,
     find_matches_for_item, find_matches_for_report,
-    MATCH_THRESHOLD,
+    MATCH_THRESHOLD, REVIEW_THRESHOLD,
 )
 
 from apps.items.models import Item
 from apps.reports.models import Report
 from apps.matching.models import MatchResult
+from apps.matching.email import send_match_email
 
 
 def _to_item_data(item: Item) -> ItemData:
@@ -27,7 +30,7 @@ def _to_item_data(item: Item) -> ItemData:
         description=item.description or "",
         found_at=item.created_at.replace(tzinfo=None),
         found_location=item.found_location or "",
-        image_path=item.photo_path or "",
+        image_path="",
     )
 
 
@@ -63,16 +66,27 @@ def match_new_item(item: Item) -> list[dict]:
 
     saved = []
     for r in results:
-        if r.matched:
+        if r.score >= REVIEW_THRESHOLD:
             MatchResult.objects.update_or_create(
                 item_id=r.item_id,
                 report_id=r.report_id,
                 defaults={'similarity_score': r.score / 100.0},
             )
+            report = Report.objects.get(id=r.report_id)
+            if r.matched:
+                if not report.auth_code:
+                    report.auth_code = ''.join(random.choices(string.digits, k=6))
+                report.status = 'matched'
+                report.save(update_fields=['auth_code', 'status'])
+                send_match_email(report.user_email, report.user_name, item, r.reasoning, report.auth_code)
+            else:
+                report.status = 'review'
+                report.save(update_fields=['status'])
         saved.append({
             'report_id': r.report_id,
             'score': r.score,
             'matched': r.matched,
+            'needs_review': REVIEW_THRESHOLD <= r.score < MATCH_THRESHOLD,
             'reasoning': r.reasoning,
         })
 
@@ -100,16 +114,27 @@ def match_new_report(report: Report) -> list[dict]:
 
     saved = []
     for r in results:
-        if r.matched:
+        if r.score >= REVIEW_THRESHOLD:
             MatchResult.objects.update_or_create(
                 item_id=r.item_id,
                 report_id=r.report_id,
                 defaults={'similarity_score': r.score / 100.0},
             )
+            if r.matched:
+                matched_item = Item.objects.get(id=r.item_id)
+                if not report.auth_code:
+                    report.auth_code = ''.join(random.choices(string.digits, k=6))
+                report.status = 'matched'
+                report.save(update_fields=['auth_code', 'status'])
+                send_match_email(report.user_email, report.user_name, matched_item, r.reasoning, report.auth_code)
+            else:
+                report.status = 'review'
+                report.save(update_fields=['status'])
         saved.append({
             'item_id': r.item_id,
             'score': r.score,
             'matched': r.matched,
+            'needs_review': REVIEW_THRESHOLD <= r.score < MATCH_THRESHOLD,
             'reasoning': r.reasoning,
         })
 

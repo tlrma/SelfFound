@@ -17,6 +17,7 @@ import sys
 import os
 import glob
 import json
+import base64
 import cv2
 import requests
 
@@ -100,7 +101,7 @@ class LostItemDetectorMockNode(Node):
         self.get_logger().info(
             f'분류: {result["category"]} (confidence={result["confidence"]:.2f})'
         )
-        self._post_to_backend(result, stt_text, self.image_path)
+        self._post_to_backend(result, stt_text, image)
 
     # ── 내부 메서드 ────────────────────────────────────────────────────────
 
@@ -113,16 +114,19 @@ class LostItemDetectorMockNode(Node):
             self.get_logger().error(f'이미지 로드 실패: {self.image_path}')
         return image
 
-    def _post_to_backend(self, result: dict, stt_text: str, photo_path: str):
+    def _post_to_backend(self, result: dict, stt_text: str, image):
+        _, buf = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        image_b64 = base64.b64encode(buf.tobytes()).decode('utf-8')
+
         payload = {
             'category': result['category'],
             'confidence': result['confidence'],
             'description': result.get('description', ''),
-            'photo_path': photo_path,
+            'image_b64': image_b64,
             'found_location': stt_text,
         }
         try:
-            resp = requests.post(self.backend_url, json=payload, timeout=5)
+            resp = requests.post(self.backend_url, json=payload, timeout=60)
             resp.raise_for_status()
             data = resp.json()
             item_id = data.get('item', {}).get('id', '?')

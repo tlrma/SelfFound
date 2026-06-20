@@ -1,0 +1,316 @@
+{
+  "summary": [
+    {
+      "model": "gpt-4.1-nano",
+      "credit": 1,
+      "correct": 4,
+      "total": 5,
+      "accuracy_pct": 80.0,
+      "avg_elapsed_s": 1.22
+    },
+    {
+      "model": "gpt-4o-mini",
+      "credit": 2,
+      "correct": 5,
+      "total": 5,
+      "accuracy_pct": 100.0,
+      "avg_elapsed_s": 1.94
+    },
+    {
+      "model": "gpt-5-nano",
+      "credit": 4,
+      "correct": 4,
+      "total": 5,
+      "accuracy_pct": 80.0,
+      "avg_elapsed_s": 7.72
+    },
+    {
+      "model": "gpt-4.1-mini",
+      "credit": 4,
+      "correct": 5,
+      "total": 5,
+      "accuracy_pct": 100.0,
+      "avg_elapsed_s": 1.49
+    },
+    {
+      "model": "gemini-2.5-flash-lite",
+      "credit": 1,
+      "correct": 5,
+      "total": 5,
+      "accuracy_pct": 100.0,
+      "avg_elapsed_s": 1.29
+    }
+  ],
+  "records": [
+    {
+      "model": "gpt-4.1-nano",
+      "credit": 1,
+      "accuracy": 0.8,
+      "correct": 4,
+      "total": 5,
+      "cases": [
+        {
+          "case": 1,
+          "score": 80,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.37,
+          "reasoning": "두 물건 모두 흰색 배경에 마스터카드 로고가 있으며, 카드의 형태와 디자인이 유사하기 때문에 같은 물건일 가능성이 높습니다."
+        },
+        {
+          "case": 2,
+          "score": 10,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 1.12,
+          "reasoning": "습득된 물건은 검정색 스마트폰이고, 분실 신고는 흰색 삼성 갤럭시 폰으로 색상과 자세한 외관 정보가 다르므로 같은 물건일 가능성이 낮음."
+        },
+        {
+          "case": 3,
+          "score": 60,
+          "expected": "match",
+          "matched": "no_match",
+          "correct": false,
+          "elapsed": 1.13,
+          "reasoning": "물건은 둘 다 갈색 가죽 지갑으로 설명되어 있어, 동일한 물건일 가능성이 높지만 로고 여부와 내부 구성 정보가 일치하지 않아 확실히 판단하기 어렵습니다."
+        },
+        {
+          "case": 4,
+          "score": 70,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.18,
+          "reasoning": "물건 설명에서 위치가 3층 엘리베이터 앞인 검정 우산으로 묘사되어 있으며, 분실 신고에서도 삼층 우산이라고 하여 동일한 위치와 물건으로 추측됩니다."
+        },
+        {
+          "case": 5,
+          "score": 60,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 1.32,
+          "reasoning": "습득된 물건은 금색 테 반뿔 안경이고 렌즈는 투명하며, 분실 신고는 검정 뿔테 안경으로 색상이 다르기 때문에 일치 여부가 확실하지 않음."
+        }
+      ]
+    },
+    {
+      "model": "gpt-4o-mini",
+      "credit": 2,
+      "accuracy": 1.0,
+      "correct": 5,
+      "total": 5,
+      "cases": [
+        {
+          "case": 1,
+          "score": 80,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.74,
+          "reasoning": "두 물건 모두 흰색 배경의 카드이며 'MASTER CARD'가 포함되어 있습니다. 그러나 신고자 묘사에서는 오른쪽 아래에 로고가 위치해 있다고 하여 위치 차이가 있어 100점은 아닙니다."
+        },
+        {
+          "case": 2,
+          "score": 0,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 2.11,
+          "reasoning": "물건의 색상과 브랜드가 다르며, 한 물건은 화면이 깨져 있고 카메라가 세 개 있는 스마트폰인 반면, 다른 물건은 흰색 삼성 갤럭시 폰으로 뒷면에 스티커가 있는 것으로 설명되어 서로 다릅니다."
+        },
+        {
+          "case": 3,
+          "score": 85,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.95,
+          "reasoning": "두 물건 모두 갈색 지갑이며 카드 슬롯이 있는 점에서 유사성이 높습니다. 그러나 로고가 보이지 않는다는 점에서 차이가 있을 수 있으므로 100점 만점은 아닙니다."
+        },
+        {
+          "case": 4,
+          "score": 90,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 2.05,
+          "reasoning": "습득된 물건과 분실 신고 묘사가 모두 3층에서 발생했으며, 우산의 색상도 일치합니다. 그러나 검정색 우산이 여러 개일 수 있기에 100점은 아닙니다."
+        },
+        {
+          "case": 5,
+          "score": 0,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 1.84,
+          "reasoning": "습득된 물건은 금색 테 반뿔 안경인데 비해, 분실 신고에서는 검정 뿔테 안경을 잃어버렸다고 했습니다. 색상과 형태가 다르므로 같은 물건이 아닙니다."
+        }
+      ]
+    },
+    {
+      "model": "gpt-5-nano",
+      "credit": 4,
+      "accuracy": 0.8,
+      "correct": 4,
+      "total": 5,
+      "cases": [
+        {
+          "case": 1,
+          "score": 20,
+          "expected": "match",
+          "matched": "no_match",
+          "correct": false,
+          "elapsed": 11.23,
+          "reasoning": "두 묘사 모두 흰색 플라스틱 카드에 마스터카드 로고가 보인다는 점은 일치합니다. 그러나 하나에는 은행이 불분명하고 다른 하나는 우리은행이라고 명시되어 있어 같은 물건일 가능성은 낮다고 판단됩니다."
+        },
+        {
+          "case": 2,
+          "score": 0,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 8.84,
+          "reasoning": "두 물건의 색상이 다르고(검정 vs 흰색) 뒷면 구성도 다릅니다. 습득 물건은 화면이 파손되어 있고 뒷면에 카메라가 3개 보이지만, 분실 신고 묘사는 흰색 삼성 갤럭시폰으로 뒷면에 스티커가 있는 것으로만 되어 있어 동일 물건일 가능성이 낮습니다."
+        },
+        {
+          "case": 3,
+          "score": 75,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 5.8,
+          "reasoning": "두 묘사 모두 갈색 가죽 지갑으로 카드 슬롯이 있으며 현금과 카드가 들어 있을 수 있다는 점이 동일합니다. 로고가 보이지 않는 추가 정보만으로는 확정하기 어렵지만 동일 물건일 가능성이 높습니다."
+        },
+        {
+          "case": 4,
+          "score": 85,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 5.26,
+          "reasoning": "두 묘사 모두 삼층에서 우산을 다루고 있다. 하나는 발견, 다른 하나는 분실 신고이므로 같은 물건일 가능성이 높다."
+        },
+        {
+          "case": 5,
+          "score": 25,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 7.49,
+          "reasoning": "습득 물건은 금색 테의 반뿔 안경으로 렌즈가 투명하다고 되어 있고, 분실 신고는 검정 뿔테 안경이라고 돼 있습니다. 색상 차이와 표현 차이로 같은 물건일 가능성은 낮습니다."
+        }
+      ]
+    },
+    {
+      "model": "gpt-4.1-mini",
+      "credit": 4,
+      "accuracy": 1.0,
+      "correct": 5,
+      "total": 5,
+      "cases": [
+        {
+          "case": 1,
+          "score": 70,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.33,
+          "reasoning": "두 카드 모두 흰색 바탕에 마스터카드 로고가 있으나, 습득물은 로고가 왼쪽 하단에 있고 분실물은 오른쪽 아래에 있어 위치 차이가 있습니다. 카드사 정보가 불분명하여 완전 일치 여부 판단에 제약이 있습니다."
+        },
+        {
+          "case": 2,
+          "score": 10,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 1.6,
+          "reasoning": "습득된 물건은 검정색이고 카메라가 3개 있으나, 분실 신고 묘사는 흰색 삼성 갤럭시 폰이며 뒷면에 스티커가 있어 색상과 특징이 달라 동일 물건일 가능성이 매우 낮습니다."
+        },
+        {
+          "case": 3,
+          "score": 80,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.56,
+          "reasoning": "두 물건 모두 갈색 지갑이며 카드가 들어있는 점이 일치하지만, 신고 묘사에는 가죽 재질이나 더 구체적인 디테일이 없어 100점으로 판단하기엔 정보가 부족합니다."
+        },
+        {
+          "case": 4,
+          "score": 85,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.43,
+          "reasoning": "습득된 물건과 분실 신고 묘사가 모두 3층에서 우산임을 언급하고 있으나, 색상 정보는 분실 신고에 없으므로 완전한 일치로 판단하기는 어렵습니다."
+        },
+        {
+          "case": 5,
+          "score": 10,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 1.54,
+          "reasoning": "습득된 물건은 금색 테 반뿔 안경이며, 분실 신고는 검정 뿔테 안경으로 색상이 다르기 때문에 동일한 물건일 가능성이 낮습니다."
+        }
+      ]
+    },
+    {
+      "model": "gemini-2.5-flash-lite",
+      "credit": 1,
+      "accuracy": 1.0,
+      "correct": 5,
+      "total": 5,
+      "cases": [
+        {
+          "case": 1,
+          "score": 80,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.39,
+          "reasoning": "습득된 물건의 설명에 'MASTER CARD'라는 글씨와 로고가 있으며, 분실 신고 묘사에도 '마스터카드 로고'가 언급되어 두 물건 모두 마스터카드 브랜드의 카드일 가능성이 높습니다. 다만, 카드사 불분명 및 '우리은행 체크카드'라는 구체적인 정보가 없어 100점은 아닙니다."
+        },
+        {
+          "case": 2,
+          "score": 10,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 1.37,
+          "reasoning": "습득된 물건은 검정색 스마트폰이고 분실 신고 묘사는 흰색 삼성 갤럭시 폰이므로 색상에서 큰 차이가 있습니다. 카메라 개수나 스티커 유무 등 다른 부분에서도 일치하는 정보가 없어 같은 물건일 가능성은 매우 낮습니다."
+        },
+        {
+          "case": 3,
+          "score": 80,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.34,
+          "reasoning": "두 물건 모두 '갈색 지갑'이라는 동일한 핵심 정보를 가지고 있으며, 내용물(카드, 현금) 또한 유사할 가능성이 높습니다. 다만, 습득된 물건에 로고가 없다는 점이 분실 신고 묘사에서 명확히 언급되지 않아 100점은 아닙니다."
+        },
+        {
+          "case": 4,
+          "score": 100,
+          "expected": "match",
+          "matched": "match",
+          "correct": true,
+          "elapsed": 1.23,
+          "reasoning": "습득된 물건의 장소와 색상, 분실 신고의 장소가 일치하며, 분실물이 우산이라는 점에서 같은 물건일 확률이 매우 높습니다."
+        },
+        {
+          "case": 5,
+          "score": 10,
+          "expected": "no_match",
+          "matched": "no_match",
+          "correct": true,
+          "elapsed": 1.13,
+          "reasoning": "습득된 물건은 금색 테 반뿔 안경이고, 분실 신고 묘사는 검정 뿔테 안경으로 색상과 테의 형태에서 차이가 있어 같은 물건으로 보기 어렵습니다."
+        }
+      ]
+    }
+  ]
+}

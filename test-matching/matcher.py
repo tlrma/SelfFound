@@ -1,6 +1,6 @@
 """
 분실물 매칭 알고리즘 프로토타입
-- 텍스트 유사도: gpt-5-nano (1 크레딧, 텍스트)
+- 텍스트 유사도: gpt-4o-mini (2 크레딧, 텍스트)
 """
 
 import json
@@ -18,7 +18,8 @@ load_dotenv()
 GMS_KEY    = os.environ.get("GMS_KEY")
 OPENAI_URL = "https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions"
 
-MATCH_THRESHOLD      = 70
+MATCH_THRESHOLD      = 70   # 이상: 매칭 성공 → 이메일 발송
+REVIEW_THRESHOLD     = 50   # 이상 70 미만: 관리자 검토 필요
 MAX_TIME_WINDOW_DAYS = 30
 
 WEIGHTS = {
@@ -106,10 +107,10 @@ def score_time(item: ItemData, report: ReportData) -> float:
 
 def score_location(item: ItemData, report: ReportData) -> float:
     """장소 유사도 (프로토타입: 키워드 기반). 추후 임베딩으로 교체 가능."""
-    loc_item   = item.found_location.lower()
-    loc_report = report.lost_location.lower()
+    loc_item   = re.sub(r'[^\w\s]', ' ', item.found_location.lower())
+    loc_report = re.sub(r'[^\w\s]', ' ', report.lost_location.lower())
 
-    if loc_item == loc_report:
+    if loc_item.strip() == loc_report.strip():
         return 1.0
     if set(loc_item.split()) & set(loc_report.split()):
         return 0.6
@@ -118,7 +119,7 @@ def score_location(item: ItemData, report: ReportData) -> float:
 
 def score_description_llm(item: ItemData, report: ReportData) -> tuple[float, str]:
     """
-    gpt-5-nano로 묘사 유사도 계산 (1 크레딧).
+    gpt-4o-mini로 묘사 유사도 계산 (2 크레딧).
     반환: (0~1 float, 한국어 reasoning)
     """
     prompt = f"""아래 두 물건이 같은 물건인지 판단해주세요.
@@ -135,7 +136,7 @@ def score_description_llm(item: ItemData, report: ReportData) -> tuple[float, st
     {{"score": 0에서 100 사이 정수, "reasoning": "한국어로 판단 근거 1~2문장"}}"""
 
     messages = [{"role": "user", "content": prompt}]
-    raw      = _call_openai("gpt-5-nano", messages)
+    raw      = _call_openai("gpt-4o-mini", messages)
     result   = _parse_json(raw)
     return result["score"] / 100.0, result["reasoning"]
 

@@ -3,6 +3,7 @@ from django.db import models
 class Report(models.Model):
     STATUS_CHOICES = [
         ('searching', '찾는중'),
+        ('review', '검토필요'),
         ('matched', '매칭완료'),
         ('completed', '수령완료'),
     ]

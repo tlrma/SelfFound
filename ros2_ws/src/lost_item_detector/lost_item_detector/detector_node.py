@@ -13,10 +13,10 @@ import sys
 import os
 import glob
 import json
+import base64
 import cv2
 import numpy as np
 import requests
-from datetime import datetime
 
 import rclpy
 from rclpy.node import Node
@@ -51,12 +51,9 @@ class LostItemDetectorNode(Node):
 
         self.declare_parameter('model_path', os.path.join(VISION_PATH, 'best.pt'))
         self.declare_parameter('backend_url', 'http://localhost:8000/api/items/')
-        self.declare_parameter('photo_save_dir', '/tmp/lost_items')
 
         model_path = os.path.abspath(self.get_parameter('model_path').value)
         self.backend_url = self.get_parameter('backend_url').value
-        self.photo_dir = self.get_parameter('photo_save_dir').value
-        os.makedirs(self.photo_dir, exist_ok=True)
 
         self.modbus = ModbusMock()
         self.vision = VisionPipeline(model_path=model_path)
@@ -83,11 +80,6 @@ class LostItemDetectorNode(Node):
         if image is None:
             return
 
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-        photo_path = os.path.join(self.photo_dir, f'item_{ts}.jpg')
-        cv2.imwrite(photo_path, image)
-        self.get_logger().info(f'이미지 저장: {photo_path}')
-
         result = self.vision.run(image)
         if 'error' in result:
             self.get_logger().error(f'VisionPipeline 오류: {result["error"]}')
@@ -96,7 +88,7 @@ class LostItemDetectorNode(Node):
         self.get_logger().info(
             f'분류: {result["category"]} (confidence={result["confidence"]:.2f})'
         )
-        self._post_to_backend(result, stt_text, photo_path)
+        self._post_to_backend(result, stt_text, image)
 
     # ── 내부 메서드 ────────────────────────────────────────────────────────
 
@@ -123,16 +115,19 @@ class LostItemDetectorNode(Node):
             self.get_logger().error(f'RealSense 캡처 실패: {e}')
             return None
 
-    def _post_to_backend(self, result: dict, stt_text: str, photo_path: str):
+    def _post_to_backend(self, result: dict, stt_text: str, image: np.ndarray):
+        _, buf = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        image_b64 = base64.b64encode(buf.tobytes()).decode('utf-8')
+
         payload = {
             'category': result['category'],
             'confidence': result['confidence'],
             'description': result.get('description', ''),
-            'photo_path': photo_path,
+            'image_b64': image_b64,
             'found_location': stt_text,
         }
         try:
-            resp = requests.post(self.backend_url, json=payload, timeout=5)
+            resp = requests.post(self.backend_url, json=payload, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             item_id = data.get('item', {}).get('id', '?')

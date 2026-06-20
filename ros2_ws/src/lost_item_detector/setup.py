@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'detector_node = lost_item_detector.detector_node:main',
             'detector_node_mock = lost_item_detector.detector_node_mock:main',
+            'trigger_node = lost_item_detector.trigger_node:main',
         ],
     },
 )
