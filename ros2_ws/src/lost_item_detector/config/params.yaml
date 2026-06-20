@@ -9,9 +9,7 @@ lost_item_detector:
     # YOLO 모델 파일 경로 (.pt)
     model_path: '/home/ssafy/finalPJT/SelfFound/vision/best.pt'
     # Django 백엔드 주소
-    backend_url: 'http://localhost:5173/api/items/'
-    # 캡처 이미지 저장 폴더
-    photo_save_dir: '/tmp/lost_items'
+    backend_url: 'http://localhost:8000/api/items/'
 
 lost_item_detector_mock:
   ros__parameters:
@@ -20,6 +18,6 @@ lost_item_detector_mock:
     # YOLO 모델 파일 경로 (.pt)
     model_path: '/home/ssafy/finalPJT/SelfFound/vision/best.pt'
     # Django 백엔드 주소
-    backend_url: 'http://localhost:5173/api/items/'
+    backend_url: 'http://localhost:8000/api/items/'
     # 테스트에 사용할 이미지 경로
     image_path: '/home/ssafy/finalPJT/SelfFound/test-kpass.jpg'

@@ -8,8 +8,8 @@ import base64
 import os
 import requests
 
-GMS_KEY    = os.environ.get("GMS_KEY")
-OPENAI_URL = "https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions"
+GMS_KEY     = os.environ.get("GMS_KEY")
+GEMINI_BASE = "https://gms.ssafy.io/gmsapi/generativelanguage.googleapis.com/v1beta/models"
 
 _CATEGORY_EXTRA_PROMPT = {
     "Card": (
@@ -27,7 +27,7 @@ _CATEGORY_EXTRA_PROMPT = {
 
 def generate_description(image: "np.ndarray", category: str = "") -> str:
     """
-    이미지(numpy array) → 한국어 자연어 묘사 (gpt-4o-mini).
+    이미지(numpy array) → 한국어 자연어 묘사 (gemini-3.5-flash).
 
     Args:
         image   : cv2로 읽은 BGR 이미지
@@ -59,31 +59,17 @@ def generate_description(image: "np.ndarray", category: str = "") -> str:
         "설명 외 다른 말은 하지 마세요."
     )
 
+    url = f"{GEMINI_BASE}/gemini-3.5-flash:generateContent?key={GMS_KEY}"
     response = requests.post(
-        OPENAI_URL,
-        headers={
-            "Content-Type":  "application/json",
-            "Authorization": f"Bearer {GMS_KEY}",
-        },
-        json={
-            "model": "gpt-4o-mini",
-            "max_tokens": 300,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"},
-                        },
-                        {"type": "text", "text": text_prompt},
-                    ],
-                }
-            ],
-        },
+        url,
+        headers={"Content-Type": "application/json"},
+        json={"contents": [{"parts": [
+            {"inline_data": {"mime_type": "image/jpeg", "data": image_b64}},
+            {"text": text_prompt},
+        ]}]},
         timeout=15,
     )
     if not response.ok:
         print(f"[llm] GMS 오류 {response.status_code}: {response.text}")
         return ""
-    return response.json()["choices"][0]["message"]["content"].strip()
+    return response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
