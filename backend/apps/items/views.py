@@ -15,6 +15,9 @@ def create_item(request):
     """
     POST /api/items/
     비전 파이프라인 결과를 DB에 저장하고 매칭 알고리즘을 실행한다.
+    body: { category, confidence, description, photo_path, found_location }
+    description은 vision pipeline에서 LLM으로 생성해 전송한다.
+
     """
     data = request.data.copy()
     

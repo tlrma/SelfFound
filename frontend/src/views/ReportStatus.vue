@@ -5,6 +5,16 @@
       <p>신고서가 시스템에 정상적으로 등록되었습니다.</p>
     </div>
 
+    <div v-if="matched === 'true'" class="match-banner match-success">
+      <h3>✅ 매칭 성공</h3>
+      <p>보관 중인 분실물 중 일치하는 물건이 발견되었습니다. 담당자가 확인 후 연락드릴 예정입니다.</p>
+      <p v-if="reasoning" class="reasoning">💬 {{ reasoning }}</p>
+    </div>
+    <div v-else class="match-banner match-fail">
+      <h3>❌ 매칭 실패</h3>
+      <p>현재 보관 중인 분실물 중 일치하는 물건이 없습니다. 새로운 물건이 접수되면 자동으로 재매칭됩니다.</p>
+    </div>
+
     <div class="info-box" v-if="reportData">
   <h4>접수 정보</h4>
   <p><strong>접수 번호 (ID):</strong> {{ reportId }}</p>
@@ -34,6 +44,8 @@ import axios from 'axios';
 const route = useRoute();
 const router = useRouter();
 const reportId = route.params.id;
+const matched = route.query.matched;
+const reasoning = route.query.reasoning;
 const reportData = ref(null);
 
 const fetchReportStatus = async () => {
@@ -119,5 +131,26 @@ onMounted(() => {
 .loading {
   margin: 20px 0;
   color: #666;
+}
+.match-banner {
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+.match-success {
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.match-fail {
+  background-color: #fefce8;
+  color: #854d0e;
+  border: 1px solid #fde68a;
+}
+.reasoning {
+  margin-top: 8px;
+  font-size: 0.9em;
+  opacity: 0.85;
+  font-style: italic;
 }
 </style>
