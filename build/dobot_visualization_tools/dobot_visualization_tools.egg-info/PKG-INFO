@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: dobot_visualization_tools
+Version: 1.0.0
+Summary: Useful tools for visualization
+Maintainer: Jan Kaniuka
+Maintainer-email: kan.jan@wp.pl
+License: BSD
+Requires-Dist: setuptools

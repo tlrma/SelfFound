@@ -1,0 +1,1 @@
+/home/ssafy/finalPJT/SelfFound/hardware/dobot_kinematics/launch/dobot_validate_trajectory.launch.py

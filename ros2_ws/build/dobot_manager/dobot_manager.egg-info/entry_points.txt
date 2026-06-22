@@ -1,0 +1,2 @@
+[console_scripts]
+task_manager = dobot_manager.dobot_task_manager:main
