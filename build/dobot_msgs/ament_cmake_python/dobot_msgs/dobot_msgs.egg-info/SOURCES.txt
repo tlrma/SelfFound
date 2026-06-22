@@ -1,0 +1,6 @@
+setup.py
+dobot_msgs/__init__.py
+dobot_msgs.egg-info/PKG-INFO
+dobot_msgs.egg-info/SOURCES.txt
+dobot_msgs.egg-info/dependency_links.txt
+dobot_msgs.egg-info/top_level.txt

@@ -1,0 +1,10 @@
+Metadata-Version: 2.1
+Name: dobot_manager
+Version: 0.0.0
+Summary: TODO: Package description
+Maintainer: ssafy
+Maintainer-email: tanyatws15@gmail.com
+License: TODO: License declaration
+Requires-Dist: setuptools
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
