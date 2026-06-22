@@ -70,7 +70,10 @@ def match_new_item(item: Item) -> list[dict]:
             MatchResult.objects.update_or_create(
                 item_id=r.item_id,
                 report_id=r.report_id,
-                defaults={'similarity_score': r.score / 100.0},
+                defaults={
+                    'similarity_score': r.score / 100.0,
+                    'reasoning': r.reasoning or '',
+                },
             )
             report = Report.objects.get(id=r.report_id)
             if r.matched:
@@ -118,7 +121,10 @@ def match_new_report(report: Report) -> list[dict]:
             MatchResult.objects.update_or_create(
                 item_id=r.item_id,
                 report_id=r.report_id,
-                defaults={'similarity_score': r.score / 100.0},
+                defaults={
+                    'similarity_score': r.score / 100.0,
+                    'reasoning': r.reasoning or '',
+                },
             )
             if r.matched:
                 matched_item = Item.objects.get(id=r.item_id)

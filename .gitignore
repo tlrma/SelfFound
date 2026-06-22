@@ -26,6 +26,10 @@ dataset/
 dataset_*/
 *.zip
 models/checkpoints/
+vision/model_training/train/
+vision/model_training/valid/
+vision/model_training/test/
+vision/model_training/runs/
 
 # IDE
 .vscode/

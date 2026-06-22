@@ -8,4 +8,4 @@ class ReportSerializer(serializers.ModelSerializer):
         fields = ['id', 'user_name', 'user_email', 'category',
                   'lost_location', 'lost_description', 'lost_at',
                   'status', 'created_at']
-        read_only_fields = ['id', 'status', 'created_at']
+        read_only_fields = ['id', 'created_at']
