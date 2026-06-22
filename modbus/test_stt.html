@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>STT 테스트</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 60px auto; text-align: center; }
+    button { font-size: 20px; padding: 16px 32px; border-radius: 12px; cursor: pointer; border: none; }
+    #start { background: #2563eb; color: white; }
+    #start.recording { background: #dc2626; }
+    #result { margin-top: 30px; padding: 20px; border: 2px dashed #cbd5e1; border-radius: 12px; min-height: 80px; font-size: 20px; color: #1e3a5f; text-align: left; }
+    #status { margin-top: 16px; color: #64748b; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h2>🎙️ Web Speech API 테스트</h2>
+  <button id="start" onclick="toggle()">마이크 시작</button>
+  <div id="result">여기에 인식된 텍스트가 표시됩니다.</div>
+  <div id="status"></div>
+
+  <script>
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let rec = null;
+    let going = false;
+
+    function toggle() {
+      going ? stop() : start();
+    }
+
+    function start() {
+      if (!SR) { alert('이 브라우저는 Web Speech API를 지원하지 않습니다.'); return; }
+      rec = new SR();
+      rec.lang = 'ko-KR';
+      rec.continuous = true;
+      rec.interimResults = true;
+
+      rec.onresult = (e) => {
+        let text = '';
+        for (const r of e.results) text += r[0].transcript;
+        document.getElementById('result').innerText = text;
+      };
+      rec.onerror = (e) => {
+        document.getElementById('status').innerText = '오류: ' + e.error;
+        stop();
+      };
+      rec.onend = () => {
+        if (going) setTimeout(start, 150);
+      };
+
+      rec.start();
+      going = true;
+      document.getElementById('start').textContent = '⏹ 중지';
+      document.getElementById('start').className = 'recording';
+      document.getElementById('status').innerText = '녹음 중...';
+    }
+
+    function stop() {
+      going = false;
+      rec?.stop();
+      document.getElementById('start').textContent = '마이크 시작';
+      document.getElementById('start').className = '';
+      document.getElementById('status').innerText = '중지됨';
+    }
+  </script>
+</body>
+</html>

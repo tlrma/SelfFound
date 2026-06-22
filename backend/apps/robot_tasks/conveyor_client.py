@@ -1,23 +1,20 @@
-import requests
+from pymodbus.client.sync import ModbusTcpClient
 
-# 라즈베리파이의 실제 고정 IP 주소로 변경
-RASPBERRY_PI_URL = "http://192.168.110.148:8000/api/move" 
+MODBUS_HOST = "localhost"
+MODBUS_PORT = 5020
 
-def trigger_conveyor_belt():
-    """
-    라즈베리파이 서버로 컨베이어 벨트 구동 명령(POST)을 전송합니다.
-    """
+# reg[0]: 컨베이어 (0=대기, 1=활성)
+
+
+def trigger_conveyor_belt() -> bool:
+    """키오스크 확인 버튼 → Modbus reg[0]=1 쓰기."""
     try:
-        # timeout=2.0을 주어 라즈베리파이가 꺼져있어도 Django 서버가 멈추지 않게 보호합니다.
-        response = requests.post(RASPBERRY_PI_URL, timeout=2.0)
-        
-        if response.status_code == 200:
-            print("컨베이어 벨트 구동 명령 전송 성공!")
-            return True
-        else:
-            print(f"컨베이어 에러 응답: {response.status_code}")
-            return False
-            
-    except requests.exceptions.RequestException as e:
-        print(f"라즈베리파이 연결 실패 (기기 꺼짐 또는 네트워크 오류): {e}")
+        client = ModbusTcpClient(MODBUS_HOST, port=MODBUS_PORT)
+        client.connect()
+        client.write_register(0, 1)
+        client.close()
+        print("[Modbus] reg[0] = 1 (컨베이어 시작)")
+        return True
+    except Exception as e:
+        print(f"[Modbus] 연결 실패: {e}")
         return False

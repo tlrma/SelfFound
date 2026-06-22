@@ -1,0 +1,13 @@
+{
+  "package_name": "dobot_msgs",
+  "non_idl_tuples": [
+    "/home/ssafy/finalPJT/SelfFound/ros2_ws/src/dobot_msgs:action/PointToPoint.action",
+    "/home/ssafy/finalPJT/SelfFound/ros2_ws/src/dobot_msgs:action/SlidingRail.action",
+    "/home/ssafy/finalPJT/SelfFound/ros2_ws/src/dobot_msgs:msg/DobotAlarmCodes.msg",
+    "/home/ssafy/finalPJT/SelfFound/ros2_ws/src/dobot_msgs:msg/GripperStatus.msg",
+    "/home/ssafy/finalPJT/SelfFound/ros2_ws/src/dobot_msgs:srv/EvaluatePTPTrajectory.srv",
+    "/home/ssafy/finalPJT/SelfFound/ros2_ws/src/dobot_msgs:srv/ExecuteHomingProcedure.srv",
+    "/home/ssafy/finalPJT/SelfFound/ros2_ws/src/dobot_msgs:srv/GripperControl.srv",
+    "/home/ssafy/finalPJT/SelfFound/ros2_ws/src/dobot_msgs:srv/SuctionCupControl.srv"
+  ]
+}

@@ -17,12 +17,13 @@
       <div v-if="currentStep === 2" class="step-box stt-box">
         <h2 class="stt-title">🎤 "언제, 어디서, 무엇을" 주우셨나요?</h2>
         <p class="description">습득하신 상황과 물품에 대해 자유롭게 말씀해 주세요.</p>
-        <p class="notice">음성 인식이 활성화되어 기록 중입니다.</p>
+        <p class="notice" v-if="isRecording">음성 인식이 활성화되어 기록 중입니다.</p>
+        <p class="notice-idle" v-else>마이크를 눌러 말씀을 시작해 주세요.</p>
 
         <div class="mic-zone">
-          <div class="mic-circle" :class="{ 'is-recording': isRecording }">
+          <button class="mic-circle" :class="{ 'is-recording': isRecording }" @click="toggleRecording">
             <span class="mic-icon">🎙️</span>
-          </div>
+          </button>
           <div class="wave-container" v-if="isRecording">
             <span class="bar"></span>
             <span class="bar"></span>
@@ -30,7 +31,11 @@
             <span class="bar"></span>
             <span class="bar"></span>
           </div>
-          <p class="mock-stt-preview">[ 음성 인식 대기 중... ]</p>
+        </div>
+
+        <div class="stt-result-box" :class="{ 'has-text': sttText }">
+          <p class="stt-result-label">{{ sttText ? '인식된 내용' : '음성 인식 대기 중...' }}</p>
+          <p class="stt-result-text" v-if="sttText">{{ sttText }}</p>
         </div>
 
         <div class="form-group">
@@ -73,47 +78,81 @@
 <script setup>
 import { ref, onBeforeUnmount } from 'vue';
 
-// 단계 관리 (1: 초기화면, 2: 음성인식, 3: 컨베이어 투입 대기, 4: 감사인사 및 종료)
 const currentStep = ref(1);
 const isRecording = ref(false);
-const isProcessing = ref(false); // API 호출 중 버튼 중복 클릭 방지
+const isProcessing = ref(false);
 const countdown = ref(5);
+const sttText = ref('');
 
 let timer = null;
+let recognition = null;
 
-// [1단계 -> 2단계]
-const nextStep = () => {
-  currentStep.value = 2;
-  isRecording.value = true;
+// Web Speech API 초기화
+const initRecognition = () => {
+  const SR = window['SpeechRecognition'] || window['webkitSpeechRecognition'];
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = 'ko-KR';
+  r.continuous = true;
+  r.interimResults = true;
+  r.onresult = (e) => {
+    let text = '';
+    for (const result of e.results) {
+      text += result[0].transcript;
+    }
+    sttText.value = text;
+  };
+  r.onerror = (e) => {
+    if (e.error === 'no-speech') return; // 무음 감지는 무시하고 재시작
+    console.error('STT 오류:', e.error);
+    isRecording.value = false;
+  };
+  r.onend = () => {
+    // Chrome은 일정 시간 후 자동 중단 → 녹음 중이면 재시작
+    if (isRecording.value) recognition?.start();
+  };
+  return r;
 };
 
-// [2단계 -> 3단계] 음성인식 완료 후 타이머 없이 3단계 대기
+const toggleRecording = () => {
+  if (isRecording.value) {
+    recognition?.stop();
+    isRecording.value = false;
+  } else {
+    recognition = initRecognition();
+    if (!recognition) {
+      alert('이 브라우저는 음성 인식을 지원하지 않습니다.');
+      return;
+    }
+    sttText.value = '';
+    recognition.start();
+    isRecording.value = true;
+  }
+};
+
+// [1단계 → 2단계]
+const nextStep = () => {
+  currentStep.value = 2;
+};
+
+// [2단계 → 3단계]
 const completeRegistration = () => {
+  recognition?.stop();
   isRecording.value = false;
   currentStep.value = 3;
 };
 
-// [3단계 -> 4단계] 확인 버튼 클릭 시 API 호출 및 화면 전환
+// [3단계 → 4단계] found_info 포함해서 컨베이어 API 호출
 const confirmAndRunConveyor = async () => {
   isProcessing.value = true;
-  
   try {
-    // 앞서 작성하신 Django 백엔드의 컨베이어 제어 API 주소로 변경해 주세요.
-    // (예: http://127.0.0.1:8000/api/robot_tasks/conveyor/)
-    const apiUrl = '/api/robot_tasks/conveyor/';
-    
-    await fetch(apiUrl, {
+    await fetch('/api/robot_tasks/conveyor/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({})
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ found_info: sttText.value }),
     });
-    console.log("컨베이어 작동 API 호출 완료");
-
   } catch (error) {
-    console.error("API 통신 에러:", error);
-    // 에러가 나더라도 키오스크 흐름이 멈추지 않도록 4단계로 진행시킵니다.
+    console.error('API 통신 에러:', error);
   } finally {
     isProcessing.value = false;
     currentStep.value = 4;
@@ -121,28 +160,27 @@ const confirmAndRunConveyor = async () => {
   }
 };
 
-// [4단계] 자동 복귀 카운트다운 타이머
 const startCountdown = () => {
   countdown.value = 5;
   timer = setInterval(() => {
     countdown.value--;
-    if (countdown.value <= 0) {
-      resetKiosk();
-    }
+    if (countdown.value <= 0) resetKiosk();
   }, 1000);
 };
 
-// 모든 상태 초기화 후 첫 화면으로 이동
 const resetKiosk = () => {
   if (timer) clearInterval(timer);
+  recognition?.stop();
   currentStep.value = 1;
   isRecording.value = false;
   isProcessing.value = false;
+  sttText.value = '';
   countdown.value = 5;
 };
 
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer);
+  recognition?.stop();
 });
 </script>
 
@@ -254,11 +292,48 @@ onBeforeUnmount(() => {
   border-color: #e63946;
   background-color: #ffe3e3;
 }
-.mock-stt-preview {
-  font-family: monospace;
+.notice-idle {
+  font-size: 14px;
   color: #457b9d;
-  font-size: 16px;
   font-weight: bold;
+}
+.mic-circle {
+  cursor: pointer;
+  border: 4px solid #457b9d;
+  background-color: #f1faee;
+}
+.stt-result-box {
+  margin: 20px auto 0;
+  width: 100%;
+  min-height: 80px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 16px 20px;
+  transition: border-color 0.3s, background 0.3s;
+}
+.stt-result-box.has-text {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+.stt-result-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.stt-result-box.has-text .stt-result-label {
+  color: #2563eb;
+}
+.stt-result-text {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e3a5f;
+  line-height: 1.5;
+  word-break: keep-all;
 }
 .btn-complete {
   padding: 20px 40px;

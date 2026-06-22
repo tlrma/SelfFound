@@ -7,7 +7,7 @@ class ItemSerializer(serializers.ModelSerializer):
         
         fields = [
             'id', 'category', 'confidence', 'description',
-            'image_b64', 'found_at', 'found_location', 
+            'image_b64', 'found_info',
             'warehouse_location', 'status', 'created_at'
         ]
         
