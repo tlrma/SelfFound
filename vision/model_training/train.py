@@ -1,10 +1,11 @@
 """
 YOLOv11 학습 스크립트 — Lost-and-Found 데이터셋
-데이터 검증 결과 반영:
+데이터셋 v2 (4 classes):
   - 이미지 512×512 (Roboflow 전처리 고정)
   - Roboflow에서 이미 rotation/brightness/blur 3× 증강 완료
-  - 클래스 불균형 846× (Phone vs Charging-cable)
-  - Umbrella: valid/test 샘플 0개
+  - train 11533 / valid 989 / test 658
+  - 클래스: Card(1495) Glasses(4132) Phone(6352) Wallet(1725)
+  - 불균형 비율: 약 4× (Phone vs Card)
 """
 
 from pathlib import Path
@@ -21,7 +22,7 @@ BATCH      = 16             # VRAM 부족 시 8
 with open(DATA_YAML) as f:
     _meta = yaml.safe_load(f)
 CLASS_NAMES  = _meta["names"]
-TRAIN_COUNTS = [717, 6, 15, 3882, 144, 15, 5075, 1368, 117, 681, 591, 9]
+TRAIN_COUNTS = [1495, 4132, 6352, 1725]  # Card, Glasses, Phone, Wallet
 
 # ── 학습 설정 ─────────────────────────────────────────────
 CFG = dict(
@@ -84,8 +85,7 @@ def print_imbalance_warning():
         print(f"  {name:<18} {cnt:>5}  {bar}")
     mx, mn = max(TRAIN_COUNTS), min(TRAIN_COUNTS)
     print(f"\n  불균형 비율: {mx/mn:.0f}x  (max={mx}, min={mn})")
-    print("  [주의] Umbrella: valid/test 샘플 없음 → mAP 측정 불가")
-    print("  [주의] Charging-cable/iPad/Earphones/Pen 극히 적음")
+    print("  [참고] 불균형 비율 약 4× (Phone 6352 vs Card 1495)")
     print("=" * 60 + "\n")
 
 

@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: lost_item_detector
+Version: 0.1.0
+Summary: 분실물 감지 노드
+Maintainer: ssafy
+Maintainer-email: onono1141@gmail.com
+License: Apache-2.0
+Requires-Dist: setuptools

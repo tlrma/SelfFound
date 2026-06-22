@@ -5,6 +5,7 @@ class Report(models.Model):
         ('searching', '찾는중'),
         ('review', '검토필요'),
         ('matched', '매칭완료'),
+        ('processing', '이송중'),
         ('completed', '수령완료'),
     ]
 
