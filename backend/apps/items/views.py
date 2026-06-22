@@ -9,7 +9,6 @@ from apps.matching.service import match_new_item
 from apps.warehouse.utils import get_empty_warehouse_slot
 from apps.robot_tasks.dobot_publisher import publish_dobot_pick_and_place_task
 
-
 @api_view(['POST'])
 def create_item(request):
     """

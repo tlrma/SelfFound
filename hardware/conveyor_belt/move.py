@@ -19,11 +19,10 @@ step_line.request(consumer="step", type=gpiod.LINE_REQ_DIR_OUT)
 enable_line.request(consumer="enable", type=gpiod.LINE_REQ_DIR_OUT)
 
 # --- 3. 동작 설정 변수 ---
-# 이 값을 조절하여 실제 이동 거리를 맞추시면 됩니다.
-TARGET_STEPS = 1000  
+TARGET_STEPS = 11000  
 
 # 방향 설정 (0 또는 1)
-DIRECTION = 0 
+DIRECTION = 1 
 
 # 모터 속도 (펄스 간 대기 시간)
 DELAY = 0.001 
