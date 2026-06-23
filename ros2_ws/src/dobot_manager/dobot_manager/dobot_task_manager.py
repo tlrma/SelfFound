@@ -5,7 +5,7 @@ from rclpy.node import Node
 from action_msgs.msg import GoalStatus
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, String  # ✅ String 타입 추가
 from dobot_msgs.action import PointToPoint
 from dobot_msgs.srv import SuctionCupControl
 import time
@@ -14,7 +14,6 @@ class DobotTaskManager(Node):
     def __init__(self):
         super().__init__('dobot_task_manager')
 
-        # 통신이 막히지 않도록(Deadlock 방지) 도와주는 콜백 그룹
         self.cb_group = ReentrantCallbackGroup()
 
         # 1. Django Subscriber
@@ -32,12 +31,20 @@ class DobotTaskManager(Node):
         while not self.suction_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Suction service not available, waiting again...')
 
+        # 4. Status Publisher (작업 완료 상태 발행용)
+        self.status_publisher = self.create_publisher(
+            String, '/dobot_status', 10, callback_group=self.cb_group)
+
         self.req = SuctionCupControl.Request()
 
         self.tasks_list = []
         self.goal_num = 0
         self.is_working = False
         self.home_pose = [200.0, 0.0, 100.0, 0.0]
+        
+        # 터틀봇 고정 좌표
+        self.turtle_xyz = [171.862, -26.082, -83.127]
+        self.current_task_type = ""
 
     def target_callback(self, msg):
         if self.is_working:
@@ -47,13 +54,27 @@ class DobotTaskManager(Node):
         self.is_working = True
         coords = msg.data
 
-        # 경유지 포함 9단계 좌표 계산 (Z축 100.0)
+        # 9단계 좌표 계산 (Z축 100.0)
         t1 = [coords[0], coords[1], coords[2], 0.0]
         t1_via = [coords[0], coords[1], 100.0, 0.0]
         t2 = [coords[3], coords[4], coords[5], 0.0]
         t2_via = [coords[3], coords[4], 100.0, 0.0]
 
-        # 원본 코드 구조를 활용한 작업 리스트 생성 (모든 motion_type은 1)
+        # --- 작업 목적(Pickup or Return) 판별 로직 ---
+        # float 정밀도 오차를 감안하여 좌표 차이가 1.0mm 미만인지 확인
+        def is_turtlebot(target, turtle):
+            return all(abs(t - tr) < 1.0 for t, tr in zip(target[:3], turtle))
+
+        if is_turtlebot(t1, self.turtle_xyz):
+            self.current_task_type = "return"  # 터틀봇 -> 창고
+        elif is_turtlebot(t2, self.turtle_xyz):
+            self.current_task_type = "pickup"  # 창고 -> 터틀봇
+        else:
+            self.current_task_type = "unknown" # 판별 불가 (또는 수동 작업)
+
+        self.get_logger().info(f"작업 목적 판별: {self.current_task_type}")
+
+        # 작업 리스트 생성
         self.tasks_list = [
             ["move", t1_via, 1],
             ["move", t1, 1],
@@ -72,7 +93,15 @@ class DobotTaskManager(Node):
 
     def execute(self):
         if self.goal_num > len(self.tasks_list) - 1:
-            self.get_logger().info("모든 작업이 완료되었습니다. 대기 모드로 전환합니다.")
+            self.get_logger().info("모든 작업이 완료되었습니다.")
+            
+            # ✅ 작업 완료 토픽 발행
+            if self.current_task_type in ["pickup", "return"]:
+                status_msg = String()
+                status_msg.data = f"done:{self.current_task_type}"
+                self.status_publisher.publish(status_msg)
+                self.get_logger().info(f"상태 토픽 발행 완료: {status_msg.data}")
+
             self.is_working = False
             return
 
@@ -81,7 +110,6 @@ class DobotTaskManager(Node):
 
         if current_task[0] == "suction":
             self.send_suction_request(current_task[1])
-            # 서비스 호출 완료를 대기하기 위한 타이머
             self.timer = self.create_timer(0.5, self.timer_callback, callback_group=self.cb_group)
             self.goal_num += 1
             
@@ -94,7 +122,7 @@ class DobotTaskManager(Node):
             result = self.srv_future.result()
             self.get_logger().info(f'Suction call result: {result}')
             self.timer.cancel()
-            self.execute() # 다음 작업 실행
+            self.execute()
 
     def send_suction_request(self, enable):
         self.req.enable_suction = enable
@@ -122,17 +150,16 @@ class DobotTaskManager(Node):
     def get_result_callback(self, future):
         status = future.result().status
         if status == GoalStatus.STATUS_SUCCEEDED:
-            self.execute() # 이동 성공 시 다음 작업 실행
+            self.execute()
 
     def feedback_callback(self, feedback_msg):
-        pass # 로그 도배 방지
+        pass
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = DobotTaskManager()
     
-    # 통신 병목을 막아주는 멀티스레드 실행기
     executor = MultiThreadedExecutor()
     try:
         rclpy.spin(node, executor=executor)
