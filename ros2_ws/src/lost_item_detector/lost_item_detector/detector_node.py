@@ -47,8 +47,8 @@ class LostItemDetectorNode(Node):
         super().__init__('lost_item_detector')
 
         self.declare_parameter('model_path', os.path.join(VISION_PATH, 'best.pt'))
-        self.declare_parameter('backend_url', 'http://localhost:8000/api/items/')
-        self.declare_parameter('alert_url', 'http://localhost:8000/api/admin_panel/alerts/')
+        self.declare_parameter('backend_url', 'http://192.168.110.119:8000/api/items/')
+        self.declare_parameter('alert_url', 'http://192.168.110.119:8000/api/admin_panel/alerts/')
         self.declare_parameter('poll_interval', 0.5)
 
         model_path       = os.path.abspath(self.get_parameter('model_path').value)

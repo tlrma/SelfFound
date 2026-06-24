@@ -12,6 +12,7 @@ setup.py
 config/named_poses.yaml
 config/nav2_params.yaml
 launch/navigation.launch.py
+maps/pjt_map.pgm
 maps/pjt_map.yaml
 resource/turtlebot_manager
 test/test_copyright.py

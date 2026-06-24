@@ -1,7 +1,7 @@
 import roslibpy
 
-ROS_HOST = 'localhost'  # ROS2 노트북 IP로 변경 (예: '192.168.0.10')
-ROS_PORT = 9090
+ROS_HOST = '192.168.110.241'
+ROS_PORT = 9091
 
 
 def publish_dobot_pick_and_place_task(target1_coords, target2_coords):

@@ -243,7 +243,6 @@
 
           <div class="map-body">
             <TurtleBotMap
-              :dobot-active="robotStatus.dobot.active"
               :turtlebot-active="robotStatus.turtlebot.active"
               :has-camera-error="hasCameraError"
             />
@@ -509,8 +508,12 @@ const hasCameraError = computed(() =>
 
 const robotStatus = computed(() => {
   const latestItem = items.value[0];
-  const activeDobot = latestItem && ['stored', 'matched'].includes(latestItem.status);
-  const deliveryReport = reports.value.find((report) => ['matched', 'processing'].includes(report.status));
+  const twoMinsAgo = Date.now() - 2 * 60 * 1000;
+  const activeDobot =
+    latestItem &&
+    latestItem.status === 'stored' &&
+    new Date(latestItem.created_at).getTime() > twoMinsAgo;
+  const deliveryReport = reports.value.find((report) => report.status === 'processing');
 
   return {
     dobot: {
