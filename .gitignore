@@ -38,3 +38,6 @@ vision/model_training/runs/
 # OS
 .DS_Store
 Thumbs.db
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
