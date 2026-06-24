@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/matching/', include('apps.matching.urls')),
     path('api/pickup/', include('apps.pickup.urls')),
     path('api/robot_tasks/', include('apps.robot_tasks.urls')),
+    path('api/admin_panel/alerts/', include('apps.admin_panel.urls')),
 ]

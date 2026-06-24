@@ -11,6 +11,22 @@
       </div>
     </header>
 
+    <div v-if="alerts.length > 0" class="alert-list" role="alert">
+      <div
+        v-for="alert in alerts"
+        :key="alert.id"
+        :class="['alert-item', `alert-${alert.level}`]"
+      >
+        <span class="alert-icon">{{ alert.level === 'error' ? '⚠' : 'ℹ' }}</span>
+        <div class="alert-body">
+          <span class="alert-source">{{ alert.source || '시스템' }}</span>
+          <span class="alert-message">{{ alert.message }}</span>
+          <span class="alert-time">{{ formatDate(alert.created_at) }}</span>
+        </div>
+        <button type="button" class="alert-dismiss" @click="dismissAlert(alert.id)">✕</button>
+      </div>
+    </div>
+
     <main class="dashboard-grid">
       <section class="panel reports-panel">
         <div class="panel-header">
@@ -264,6 +280,7 @@ import axios from 'axios';
 
 const reports = ref([]);
 const items = ref([]);
+const alerts = ref([]);
 const isLoading = ref(true);
 const itemsLoading = ref(true);
 const errorMessage = ref('');
@@ -311,9 +328,30 @@ const fetchItems = async () => {
   }
 };
 
+const fetchAlerts = async () => {
+  try {
+    const response = await axios.get('/api/admin_panel/alerts/');
+    if (response.data && response.data.status === 'ok') {
+      alerts.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('알림 로드 실패:', error);
+  }
+};
+
+const dismissAlert = async (id) => {
+  try {
+    await axios.patch(`/api/admin_panel/alerts/${id}/dismiss/`);
+    alerts.value = alerts.value.filter((a) => a.id !== id);
+  } catch (error) {
+    console.error('알림 닫기 실패:', error);
+  }
+};
+
 const refreshDashboard = () => {
   fetchReports();
   fetchItems();
+  fetchAlerts();
 };
 
 const resetDateFilters = () => {
@@ -517,6 +555,87 @@ onUnmounted(() => {
   padding: 32px 20px;
   color: #1f2937;
   font-family: Arial, sans-serif;
+}
+
+.alert-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 13px;
+}
+
+.alert-error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.alert-warning {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.alert-info {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.alert-icon {
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.alert-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0 10px;
+}
+
+.alert-source {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.alert-message {
+  font-weight: 500;
+}
+
+.alert-time {
+  font-size: 11px;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.alert-dismiss {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.5;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.alert-dismiss:hover {
+  opacity: 1;
 }
 
 .dashboard-header {
