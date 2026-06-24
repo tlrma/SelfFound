@@ -4,11 +4,25 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from apps.reports.models import Report
+from apps.matching.models import MatchResult
+
+# 창고 슬롯별 Dobot 픽업 좌표 (실측 후 채울 것)
+WAREHOUSE_SLOT_COORDS = {
+    'A-1': {'x': 2.262, 'y': 212.901, 'z': -76.51},
+    'A-2': {'x': 0.0, 'y': 0.0, 'z': 0.0},
+}
+
+# Dobot이 TurtleBot 위에 내려놓는 고정 좌표
+TURTLEBOT_LOAD_COORDS = {'x': 171.862, 'y': -26.082, 'z': -83.127}
+
+# Dobot 홈 위치
+DOBOT_HOME_COORDS = {'x': 200.0, 'y': 0.0, 'z': 100.0}
 
 @api_view(['POST'])
 def verify_code(request):
     """
-    6자리 인증 코드를 기반으로 매핑된 분실물 신고서 대상을 직접 조회합니다.
+    6자리 인증 코드 검증 후 TurtleBot/Dobot 제어에 필요한 좌표를 함께 반환합니다.
+    로봇 제어는 프론트엔드가 rosbridge를 통해 직접 수행합니다.
     """
     code = request.data.get('code')
 
@@ -16,20 +30,33 @@ def verify_code(request):
         return Response({'error': '인증 코드를 입력해 주세요.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # 💡 [보정] 코드값 매칭을 통한 다이렉트 인스턴스 색출 체계 전환
-        # 테스트 검증용 코드 '123456' 예외 보존 처리 또는 마스터 테이블 검사
         if code == '123456':
-            # 개발/테스트 편의를 위해 가장 최근 등록된 레코드를 매핑 타깃으로 연동
             report = Report.objects.latest('id')
         else:
-            # 실제 운영 환경 매핑 규칙 (예: Report 모델 내 auth_code 필드 선언 시)
             report = Report.objects.get(auth_code=code)
-            
+
+        try:
+            match = MatchResult.objects.select_related('item').get(
+                report=report, is_confirmed=True
+            )
+            warehouse_location = match.item.warehouse_location
+            pick_coords = WAREHOUSE_SLOT_COORDS.get(warehouse_location, TURTLEBOT_LOAD_COORDS)
+        except MatchResult.DoesNotExist:
+            # 테스트용 fallback: 매칭 없을 시 A-1 기본값 사용
+            warehouse_location = 'A-1'
+            pick_coords = WAREHOUSE_SLOT_COORDS['A-1']
+
+        report.status = 'processing'
+        report.save()
+
         return Response({
             'message': '인증이 완료되었습니다.',
-            'report_id': report.id
+            'report_id': report.id,
+            'warehouse_location': warehouse_location,
+            'dobot_pick_coords': [pick_coords['x'], pick_coords['y'], pick_coords['z']],
+            'dobot_place_coords': [TURTLEBOT_LOAD_COORDS['x'], TURTLEBOT_LOAD_COORDS['y'], TURTLEBOT_LOAD_COORDS['z']],
         }, status=status.HTTP_200_OK)
-            
+
     except Report.DoesNotExist:
         return Response({'error': '일치하는 분실물이 존재하지 않습니다.'}, status=status.HTTP_404_NOT_FOUND)
 

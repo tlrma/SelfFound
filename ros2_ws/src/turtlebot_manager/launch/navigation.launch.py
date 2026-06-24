@@ -13,7 +13,7 @@ def generate_launch_description():
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     world = os.path.join(pkg_dir, 'worlds', 'lost_and_found.world')
-    map_file = os.path.join(pkg_dir, 'maps', 'pjt_map.yaml')
+    map_file = os.path.expanduser('~/finalPJTMap.yaml')
 
     gzserver = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
