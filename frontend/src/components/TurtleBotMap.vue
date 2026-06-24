@@ -25,27 +25,17 @@
     <!-- ── 우측: 터틀봇 이동 구역 ── -->
     <div class="main-room">
 
-      <!-- 터틀봇 홈 존 표시기 (우상단) -->
-      <div class="zone-turtlebot-home" :class="{ active: turtlebotActive }">
-        <span class="zone-name">TurtleBot</span>
-      </div>
-
-      <!-- 웨이포인트 마커 -->
-      <div class="waypoint" :style="waypointStyle(1.32, 0.003)">
-        <span class="wp-pip" style="background:#10b981"></span>
-        <span class="wp-label">수령 대기</span>
-      </div>
-      <div class="waypoint" :style="waypointStyle(1.41, 1.21)">
-        <span class="wp-pip" style="background:#6366f1"></span>
-        <span class="wp-label">대기</span>
-      </div>
-
-      <!-- 터틀봇 실시간 위치 마커 -->
+      <!-- 터틀봇 실시간 위치 마커 (연결 시) -->
       <div v-if="turtlePose" class="tb-marker" :style="turtlebotStyle">
         <div class="tb-ring" :class="{ moving: turtlebotActive }"></div>
         <div class="tb-body" :style="{ transform: `rotate(${turtleYawDeg}deg)` }">
           <div class="tb-arrow"></div>
         </div>
+      </div>
+
+      <!-- 기본 대기 위치 마커 (미연결 또는 위치 미수신 시) -->
+      <div v-else class="tb-marker tb-marker--idle" :style="idleMarkerStyle">
+        <div class="tb-body tb-body--idle"></div>
       </div>
 
       <!-- 연결/수신 상태 메시지 -->
@@ -62,33 +52,27 @@ import * as ROSLIB from 'roslib'
 import { useRosStore } from '@/stores/ros'
 
 const props = defineProps({
-  dobotActive:    { type: Boolean, default: false },
   turtlebotActive:{ type: Boolean, default: false },
   conveyorActive: { type: Boolean, default: false },
   cameraActive:   { type: Boolean, default: false },
   hasCameraError: { type: Boolean, default: false },
 })
 
-/* ── 터틀봇이 다니는 메인 룸 ROS 좌표 범위 (finalPJTMap 기준) ── */
-const ROOM = { xMin: 0.02, xMax: 1.87, yMin: -0.404, yMax: 1.446 }
-
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
+/* ── 터틀봇이 다니는 메인 룸 ROS 좌표 범위 ── */
+/* named_poses 기준: dobot_near(0.25,1.11) ~ waiting(1.41,1.21) ~ return_counter(1.32,0.003) */
+const ROOM = { xMin: 0.0, xMax: 1.6, yMin: -0.1, yMax: 1.35 }
 
 function rosToRoom(rx, ry) {
-  const left = clamp((rx - ROOM.xMin) / (ROOM.xMax - ROOM.xMin) * 100, 3, 97)
-  const top  = clamp((1 - (ry - ROOM.yMin) / (ROOM.yMax - ROOM.yMin)) * 100, 3, 97)
+  const left = Math.max(2, Math.min(96, (rx - ROOM.xMin) / (ROOM.xMax - ROOM.xMin) * 100))
+  const top  = Math.max(2, Math.min(96, (ROOM.yMax - ry) / (ROOM.yMax - ROOM.yMin) * 100))
   return { left: `${left}%`, top: `${top}%` }
 }
 
-function waypointStyle(rx, ry) {
-  const p = rosToRoom(rx, ry)
-  return { left: p.left, top: p.top }
-}
-
 /* ── 상태 ── */
-const rosStore   = useRosStore()
+const rosStore    = useRosStore()
 const rosConnected = computed(() => rosStore.isConnected)
-const turtlePose = ref(null)      // { x, y, yaw }
+const turtlePose  = ref(null)     // { x, y, yaw }
+const dobotActive = ref(false)    // /dobot_task_targets → true, /dobot_status done:* → false
 
 const turtlebotStyle = computed(() => {
   if (!turtlePose.value) return {}
@@ -96,31 +80,54 @@ const turtlebotStyle = computed(() => {
   return { left: p.left, top: p.top }
 })
 
+const idleMarkerStyle = computed(() => rosToRoom(1.41, 1.21))
+
 const turtleYawDeg = computed(() => {
   if (!turtlePose.value?.yaw) return 0
   return -turtlePose.value.yaw * 180 / Math.PI
 })
 
-/* ── AMCL 구독 ── */
-let amclTopic = null
-let stopWatch = null
+/* ── ROS 토픽 ── */
+let amclTopic        = null
+let dobotTargetTopic = null
+let dobotStatusTopic = null
+let stopWatch        = null
 
 function quatToYaw({ x, y, z, w }) {
   return Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
 }
 
-function subscribeAmcl() {
+function subscribeAll() {
   if (!rosStore.ros) return
+
   amclTopic = new ROSLIB.Topic({
-    ros:          rosStore.ros,
-    name:         '/amcl_pose',
-    messageType:  'geometry_msgs/PoseWithCovarianceStamped',
-    throttle_rate: 300,
+    ros:         rosStore.ros,
+    name:        '/amcl_pose',
+    messageType: 'geometry_msgs/PoseWithCovarianceStamped',
+    throttle_rate: 0,
   })
   amclTopic.subscribe((msg) => {
     const pos = msg.pose.pose.position
     const ori = msg.pose.pose.orientation
     turtlePose.value = { x: pos.x, y: pos.y, yaw: quatToYaw(ori) }
+  })
+
+  // 두봇 작업 시작: /dobot_task_targets 수신 시 active
+  dobotTargetTopic = new ROSLIB.Topic({
+    ros:         rosStore.ros,
+    name:        '/dobot_task_targets',
+    messageType: 'std_msgs/Float64MultiArray',
+  })
+  dobotTargetTopic.subscribe(() => { dobotActive.value = true })
+
+  // 두봇 작업 완료: /dobot_status "done:*" 수신 시 inactive
+  dobotStatusTopic = new ROSLIB.Topic({
+    ros:         rosStore.ros,
+    name:        '/dobot_status',
+    messageType: 'std_msgs/String',
+  })
+  dobotStatusTopic.subscribe((msg) => {
+    if (msg.data.startsWith('done:')) dobotActive.value = false
   })
 }
 
@@ -128,14 +135,16 @@ onMounted(() => {
   rosStore.connect()
   stopWatch = watch(
     () => rosStore.isConnected,
-    (ok) => { if (ok) subscribeAmcl() },
+    (ok) => { if (ok) subscribeAll() },
     { immediate: true },
   )
 })
 
 onUnmounted(() => {
-  if (amclTopic) amclTopic.unsubscribe()
-  if (stopWatch)  stopWatch()
+  amclTopic?.unsubscribe()
+  dobotTargetTopic?.unsubscribe()
+  dobotStatusTopic?.unsubscribe()
+  stopWatch?.()
 })
 </script>
 
@@ -155,14 +164,14 @@ onUnmounted(() => {
 .alcove {
   display: flex;
   flex-direction: column;
-  width: 27%;
+  width: 21%;
   border-right: 2px solid #1e293b;
   flex-shrink: 0;
 }
 
 .alcove-mid {
   display: flex;
-  flex: 0 0 24%;
+  flex: 0 0 20%;
   border-bottom: 1px solid #cbd5e1;
 }
 
@@ -214,7 +223,7 @@ onUnmounted(() => {
 }
 
 /* 개별 zone 비율 */
-.zone-dobot    { flex: 0 0 28%; border-bottom: 1px solid #cbd5e1; }
+.zone-dobot    { flex: 0 0 20%; border-bottom: 1px solid #cbd5e1; }
 .zone-camera   { flex: 1; border-right: 1px solid #cbd5e1; }
 .zone-desk     { flex: 1; }
 .zone-conveyor { flex: 1; }
@@ -227,62 +236,7 @@ onUnmounted(() => {
   background: #f8fafc;
 }
 
-/* 터틀봇 홈 존 표시기 (우상단 점선 박스) */
-.zone-turtlebot-home {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 34%;
-  height: 26%;
-  border: 1.5px dashed #94a3b8;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 0.25s, background 0.25s;
-}
-
-.zone-turtlebot-home.active {
-  border: 2px solid #dc2626;
-  background: rgba(220, 38, 38, 0.04);
-}
-
-.zone-turtlebot-home .zone-name {
-  font-weight: 700;
-  color: #94a3b8;
-  font-size: 11px;
-}
-
-.zone-turtlebot-home.active .zone-name {
-  color: #dc2626;
-}
-
-/* 웨이포인트 */
-.waypoint {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transform: translate(-50%, -50%);
-  white-space: nowrap;
-}
-
-.wp-pip {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid #fff;
-  flex-shrink: 0;
-}
-
-.wp-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: #374151;
-}
-
-/* 터틀봇 실시간 마커 */
+/* 터틀봇 마커 공통 */
 .tb-marker {
   position: absolute;
   width: 0;
@@ -322,6 +276,13 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   justify-content: center;
+}
+
+/* 미연결 시 검정 마커 */
+.tb-body--idle {
+  background: #374151;
+  border-color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
 .tb-arrow {

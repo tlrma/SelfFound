@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import * as ROSLIB from 'roslib'
 
-const ROS_URL = 'ws://localhost:9090' // ROS2 노트북 IP로 변경 (예: 'ws://192.168.0.10:9090')
+const ROS_URL = 'ws://192.168.110.241:9091'
 
 export const useRosStore = defineStore('ros', () => {
   const ros = shallowRef(null)
