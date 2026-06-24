@@ -1,0 +1,9 @@
+Django==5.2.14
+djangorestframework==3.17.1
+django-environ==0.13.0
+python-dotenv==1.2.2
+pillow==12.2.0
+requests==2.34.2
+roslibpy==2.0.0
+sqlparse==0.5.5
+asgiref==3.11.1

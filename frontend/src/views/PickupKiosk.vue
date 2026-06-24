@@ -40,7 +40,7 @@
         <h2>🤖 터틀봇이 물품을 가져오는 중입니다...</h2>
         <div class="robot-animation-box">
           <div class="turtlebot-mock">📦 Robot</div>
-          <p class="robot-status">터틀봇이 보관함에서 물품을 꺼내 이송 구역으로 이동하고 있습니다.</p>
+          <p class="robot-status">{{ robotStatus || '터틀봇이 보관함에서 물품을 꺼내 이송 구역으로 이동하고 있습니다.' }}</p>
         </div>
 
         <div class="confirmation-zone">
@@ -76,10 +76,12 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
+import { useRosStore } from '@/stores/ros';
 
 const currentStep = ref(1);
+const rosStore = useRosStore();
 
 // 데이터 관리 변수
 const reportId = ref('');
@@ -87,13 +89,100 @@ const verificationCode = ref('');
 const isConfirmed = ref(false);
 const countdown = ref(5);
 const captureCountdown = ref(5);
+const robotStatus = ref('');
 
-// 웹캠 객체 참조 참조값
+// 웹캠 객체 참조값
 const videoRef = ref(null);
 const canvasRef = ref(null);
 let streamObject = null;
 let mainTimer = null;
 let webcamTimer = null;
+let turtlebotStatusTopic = null;
+let dobotStatusTopic = null;
+
+// Dobot 좌표 (verify_code 응답으로 채워짐)
+let dobotPickCoords = [0, 0, 0];
+let dobotPlaceCoords = [0, 0, 0];
+
+// rosbridge 연결 대기
+const waitForRosConnection = () =>
+  new Promise((resolve) => {
+    if (rosStore.isConnected) { resolve(); return; }
+    const unwatch = watch(() => rosStore.isConnected, (connected) => {
+      if (connected) { unwatch(); resolve(); }
+    });
+  });
+
+// TurtleBot 이동 명령 발행
+const turtlebotGoto = (poseName) => {
+  rosStore.publish('/turtlebot/goto_pose', 'std_msgs/String', { data: poseName });
+};
+
+// Dobot 픽업 명령 발행
+const dobotPickAndPlace = () => {
+  rosStore.publish('/dobot_task_targets', 'std_msgs/Float64MultiArray', {
+    data: [...dobotPickCoords, ...dobotPlaceCoords],
+  });
+};
+
+// TurtleBot 특정 pose 도착 대기 후 콜백 실행
+const waitForTurtlebot = (poseName, callback) => {
+  turtlebotStatusTopic = rosStore.subscribe(
+    '/turtlebot/status',
+    'std_msgs/String',
+    (msg) => {
+      robotStatus.value = msg.data;
+      if (msg.data === `arrived:${poseName}`) {
+        turtlebotStatusTopic?.unsubscribe();
+        turtlebotStatusTopic = null;
+        callback();
+      }
+    },
+  );
+};
+
+// Dobot 완료 대기 (expectedMsg: 'done:pickup' | 'done:return')
+const waitForDobot = (expectedMsg, callback) => {
+  dobotStatusTopic = rosStore.subscribe(
+    '/dobot_status',
+    'std_msgs/String',
+    (msg) => {
+      if (msg.data === expectedMsg) {
+        dobotStatusTopic?.unsubscribe();
+        dobotStatusTopic = null;
+        callback();
+      }
+    },
+  );
+};
+
+// Dobot 재적재 명령 발행 (픽업의 역순: TurtleBot → 창고)
+const dobotReturn = () => {
+  rosStore.publish('/dobot_task_targets', 'std_msgs/Float64MultiArray', {
+    data: [...dobotPlaceCoords, ...dobotPickCoords],
+  });
+};
+
+// 로봇 시퀀스 시작: TurtleBot → dobot_near → Dobot 픽업 → TurtleBot → return_counter
+const startRobotSequence = async () => {
+  await waitForRosConnection();
+  robotStatus.value = 'TurtleBot 이동 중...';
+  turtlebotGoto('dobot_near');
+
+  waitForTurtlebot('dobot_near', () => {
+    robotStatus.value = 'Dobot 픽업 중...';
+    dobotPickAndPlace();
+
+    waitForDobot('done:pickup', () => {
+      robotStatus.value = 'TurtleBot 수령 구역으로 이동 중...';
+      turtlebotGoto('return_counter');
+
+      waitForTurtlebot('return_counter', () => {
+        robotStatus.value = '물품이 도착했습니다.';
+      });
+    });
+  });
+};
 
 // [1단계] 6자리 백엔드 코드 검증 API 연동
 const verifyCode = async () => {
@@ -104,12 +193,14 @@ const verifyCode = async () => {
 
   try {
     const response = await axios.post('/api/pickup/verify-code/', {
-      code: verificationCode.value
+      code: verificationCode.value,
     });
 
     if (response.status === 200) {
-      // 매핑된 내부 report_id 할당 및 2단계 카메라 연동 진입
       reportId.value = response.data.report_id;
+      dobotPickCoords = response.data.dobot_pick_coords;
+      dobotPlaceCoords = response.data.dobot_place_coords;
+
       currentStep.value = 2;
       initWebcam();
     }
@@ -118,9 +209,8 @@ const verifyCode = async () => {
     if (error.response && error.response.data && error.response.data.error) {
       alert(error.response.data.error);
     } else {
-      // 임시 테스트 환경 방어 로직 (서버 오프라인 시 임시 report_id 부여 후 통과 처리 가능)
       alert('테스트 연동: 인증 확인되어 촬영 단계로 이동합니다.');
-      reportId.value = '7'; 
+      reportId.value = '7';
       currentStep.value = 2;
       initWebcam();
     }
@@ -149,6 +239,7 @@ const initWebcam = async () => {
     console.error('카메라 디바이스를 접근할 수 없습니다:', err);
     alert('카메라 장치 오류가 발생하여 시뮬레이션을 위해 다음 단계로 강제 전환합니다.');
     currentStep.value = 3;
+    startRobotSequence();
   }
 };
 
@@ -181,8 +272,9 @@ const captureAndUpload = async () => {
     console.error('이미지 바이너리 백엔드 전송 실패:', error);
   }
 
-  // 데이터 전송 완료 후 로봇 호출(3단계) 화면 전환
+  // 데이터 전송 완료 후 로봇 호출(3단계) 화면 전환 및 로봇 시퀀스 시작
   currentStep.value = 3;
+  startRobotSequence();
 };
 
 const stopWebcam = () => {
@@ -198,16 +290,25 @@ const handlePickupDecision = async (isMine) => {
   isConfirmed.value = isMine;
 
   if (isMine) {
+    turtlebotGoto('waiting');
     try {
       await axios.post('/api/pickup/confirm/', {
         report_id: reportId.value,
-        status: 'completed'
+        status: 'completed',
       });
     } catch (error) {
       console.error('최종 확정 처리 에러:', error);
     }
   } else {
-    console.log('물품 불일치: 회수 처리 진행');
+    robotStatus.value = 'TurtleBot 창고로 복귀 중...';
+    turtlebotGoto('dobot_near');
+    waitForTurtlebot('dobot_near', () => {
+      robotStatus.value = 'Dobot 재적재 중...';
+      dobotReturn();
+      waitForDobot('done:return', () => {
+        turtlebotGoto('waiting');
+      });
+    });
   }
 
   currentStep.value = 4;
@@ -227,11 +328,20 @@ const startCountdown = () => {
 const resetKiosk = () => {
   if (mainTimer) clearInterval(mainTimer);
   stopWebcam();
+  turtlebotStatusTopic?.unsubscribe();
+  turtlebotStatusTopic = null;
+  dobotStatusTopic?.unsubscribe();
+  dobotStatusTopic = null;
+  robotStatus.value = '';
   currentStep.value = 1;
   reportId.value = '';
   verificationCode.value = '';
   isConfirmed.value = false;
 };
+
+onMounted(() => {
+  rosStore.connect();
+});
 
 onBeforeUnmount(() => {
   if (mainTimer) clearInterval(mainTimer);
