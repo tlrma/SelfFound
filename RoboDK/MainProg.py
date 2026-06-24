@@ -48,13 +48,13 @@ def job2_dobot_pick_and_place():
         # 두봇의 기준 좌표계를 베이스로 설정
         Dobot.setPoseFrame(Dobot_Base)
 
-        via_joints = [-90.00, 0.00, 0.00, 0.00]        
+        via_joints = [-90.00, 40.58, -6.15, 0.00]        
         pick_joints = [-90.00, 42.08, 12.54, 0.00]
         
         # 1) 원하는 Pick 위치로 이동
         Dobot.MoveJ(via_joints)
         time.sleep(0.5)
-        Dobot.MoveJ(pick_joints)
+        Dobot.MoveL(pick_joints)
         time.sleep(0.5)
         
         # 진공 흡착(Vacuum ON) 작동
@@ -62,16 +62,16 @@ def job2_dobot_pick_and_place():
         time.sleep(0.5)
         
         # 2) 안전 높이로 수직 상승
-        Dobot.MoveJ(via_joints)
+        Dobot.MoveL(via_joints)
         time.sleep(0.5)
 
-        via_joints = [90.00, 0.00, 0.00, 0.00] 
+        via_joints = [90.00, 1.26, 20.12, 0.00] 
         place_joints = [90.00, 32.14, 61.93, 0.00]
         
         # 3) Place 위치로 이동
         Dobot.MoveJ(via_joints)
         time.sleep(0.5)
-        Dobot.MoveJ(place_joints)
+        Dobot.MoveL(place_joints)
         time.sleep(0.5)
         
         # 진공 해제(Vacuum OFF)
@@ -79,7 +79,7 @@ def job2_dobot_pick_and_place():
         time.sleep(0.5)
         
         # 4) 작업 종료 후 로봇 팔 안전 상승
-        Dobot.MoveJ(via_joints)
+        Dobot.MoveL(via_joints)
         time.sleep(0.5)
 
         
