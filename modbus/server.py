@@ -7,11 +7,9 @@ Modbus TCP 서버 — 분실물 센터 중앙 레지스터 허브.
   python server.py              # 기본 포트 5020
   sudo python server.py -p 502  # 표준 Modbus 포트
 
-레지스터 (Holding Register, address 0~3):
+레지스터 (Holding Register, address 0~1):
   reg[0]  컨베이어   0=대기  1=활성
   reg[1]  RealSense  0=대기  1=활성
-  reg[2]  Dobot      0=비활성  1=창고적재  2=창고→터틀봇  3=터틀봇→창고
-  reg[3]  TurtleBot  0=비활성  1=초기→두봇  2=두봇→수령  3=수령→두봇  4=두봇→초기
 """
 
 import argparse
@@ -26,7 +24,7 @@ from pymodbus.datastore import (
 )
 from pymodbus.server.sync import StartTcpServer
 
-REG_NAMES = {0: "컨베이어", 1: "RealSense", 2: "Dobot", 3: "TurtleBot"}
+REG_NAMES = {0: "컨베이어", 1: "RealSense"}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,9 +36,9 @@ log = logging.getLogger(__name__)
 
 def _monitor(context: ModbusServerContext, interval: float = 0.5):
     """레지스터 변화 감지 시 로그 출력."""
-    prev = [None] * 4
+    prev = [None] * 2
     while True:
-        cur = context[0].getValues(3, 0, count=4)
+        cur = context[0].getValues(3, 0, count=2)
         for i, (p, c) in enumerate(zip(prev, cur)):
             if p != c:
                 log.info(f"reg[{i}] {REG_NAMES.get(i, '?')}  {p} → {c}")
@@ -63,7 +61,7 @@ def main():
     threading.Thread(target=_monitor, args=(context,), daemon=True).start()
 
     log.info(f"Modbus 서버 시작  {args.host}:{args.port}")
-    log.info("reg[0]=컨베이어  reg[1]=RealSense  reg[2]=Dobot  reg[3]=TurtleBot")
+    log.info("reg[0]=컨베이어  reg[1]=RealSense")
     StartTcpServer(context, address=(args.host, args.port))
 
 
