@@ -229,32 +229,27 @@
           <div class="panel-header">
             <div>
               <h3>분실물 센터 맵</h3>
-              <p>Dobot, TurtleBot, 컨베이어, 창고 적재 상태</p>
+              <p>TurtleBot 실시간 위치 · 창고 적재 상태</p>
             </div>
-            <span class="updated-at">최근 갱신 {{ lastUpdatedLabel }}</span>
+            <div class="map-status-row">
+              <span :class="['robot-badge', { active: robotStatus.dobot.active }]">
+                Dobot {{ robotStatus.dobot.active ? '● 작동중' : '○ 대기' }}
+              </span>
+              <span :class="['robot-badge turtlebot-badge', { active: robotStatus.turtlebot.active }]">
+                TurtleBot {{ robotStatus.turtlebot.active ? '● 이동중' : '○ 대기' }}
+              </span>
+            </div>
           </div>
 
-          <div class="center-map" aria-label="분실물 센터 실시간 모니터링 맵">
-            <div class="entry entry-deposit">습득물 투입</div>
-            <div class="entry entry-pickup">수령 대기</div>
-            <div class="intake-slot deposit-slot"></div>
-            <div class="intake-slot pickup-slot"></div>
-            <div class="belt">컨베이어 벨트</div>
-            <div class="camera">카메라</div>
-            <div class="scanner"></div>
+          <div class="map-body">
+            <TurtleBotMap
+              :dobot-active="robotStatus.dobot.active"
+              :turtlebot-active="robotStatus.turtlebot.active"
+              :has-camera-error="hasCameraError"
+            />
 
-            <div :class="['robot dobot', { active: robotStatus.dobot.active }]">
-              <strong>Dobot</strong>
-              <span>{{ robotStatus.dobot.task }}</span>
-            </div>
-
-            <div :class="['robot turtlebot', { active: robotStatus.turtlebot.active }]">
-              <strong>TurtleBot</strong>
-              <span>{{ robotStatus.turtlebot.task }}</span>
-            </div>
-
-            <div class="warehouse">
-              <h4>분실물 창고</h4>
+            <div class="warehouse-section">
+              <h4 class="warehouse-title">분실물 창고</h4>
               <div class="warehouse-grid">
                 <div
                   v-for="slot in warehouseSlots"
@@ -277,6 +272,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import axios from 'axios';
+import TurtleBotMap from '@/components/TurtleBotMap.vue';
 
 const reports = ref([]);
 const items = ref([]);
@@ -285,7 +281,6 @@ const isLoading = ref(true);
 const itemsLoading = ref(true);
 const errorMessage = ref('');
 const dateFilters = ref({ from: '', to: '' });
-const lastUpdatedAt = ref(null);
 const selectedReport = ref(null);
 const reviewCandidates = ref([]);
 const reviewLoading = ref(false);
@@ -319,7 +314,7 @@ const fetchItems = async () => {
     const response = await axios.get('/api/items/', { params });
     if (response.data && response.data.status === 'ok') {
       items.value = response.data.data;
-      lastUpdatedAt.value = new Date();
+
     }
   } catch (error) {
     console.error('분실물 접수 내역 로드 실패:', error);
@@ -508,6 +503,10 @@ const warehouseSlots = computed(() => {
   );
 });
 
+const hasCameraError = computed(() =>
+  alerts.value.some((a) => a.source === 'detector_node')
+)
+
 const robotStatus = computed(() => {
   const latestItem = items.value[0];
   const activeDobot = latestItem && ['stored', 'matched'].includes(latestItem.status);
@@ -529,14 +528,6 @@ const robotStatus = computed(() => {
   };
 });
 
-const lastUpdatedLabel = computed(() => {
-  if (!lastUpdatedAt.value) return '없음';
-  return lastUpdatedAt.value.toLocaleTimeString('ko-KR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-});
 
 onMounted(() => {
   refreshDashboard();
@@ -1243,163 +1234,57 @@ onUnmounted(() => {
   color: #dc2626;
 }
 
-.center-map {
-  position: relative;
-  min-height: 430px;
-  margin: 18px;
-  overflow: hidden;
-  border: 3px solid #253041;
-  border-radius: 22px;
-  background:
-    linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
-    #fbfdff;
-  background-size: 32px 32px;
+.map-status-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.entry {
-  position: absolute;
-  left: 24px;
-  width: 128px;
-  z-index: 2;
-  color: #475569;
-  font-size: 13px;
+.robot-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 12px;
   font-weight: 700;
 }
 
-.entry-deposit {
-  top: 122px;
+.robot-badge.active {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
-.entry-pickup {
-  bottom: 108px;
+.turtlebot-badge.active {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
-.intake-slot {
-  position: absolute;
-  left: 210px;
-  width: 34px;
-  height: 76px;
-  z-index: 2;
-  border: 2px solid #334155;
-  border-radius: 10px;
-  background: #fff;
+.map-body {
+  padding: 14px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.deposit-slot {
-  top: 94px;
-}
-
-.pickup-slot {
-  bottom: 82px;
-}
-
-.belt {
-  position: absolute;
-  top: 121px;
-  left: 290px;
-  right: calc(7% + clamp(220px, 28%, 300px) + 150px);
-  display: grid;
-  place-items: center;
-  min-width: 240px;
-  height: 42px;
-  z-index: 2;
-  border: 2px solid #334155;
+.warehouse-section {
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: repeating-linear-gradient(90deg, #eef2f7 0 18px, #dbe4ef 18px 36px);
-  color: #334155;
-  font-weight: 800;
+  padding: 12px;
+  background: #fcfcfd;
 }
 
-.camera {
-  position: absolute;
-  top: 54px;
-  right: calc(7% + clamp(220px, 28%, 300px) + 62px);
-  display: grid;
-  place-items: center;
-  width: 90px;
-  height: 36px;
-  z-index: 3;
-  border: 2px solid #334155;
-  border-radius: 8px;
-  background: #fff;
-  font-weight: 800;
-}
-
-.scanner {
-  position: absolute;
-  top: 112px;
-  right: calc(7% + clamp(220px, 28%, 300px) + 78px);
-  width: 48px;
-  height: 52px;
-  z-index: 2;
-  border: 2px solid #334155;
-  border-radius: 10px;
-  background: #f8fafc;
-}
-
-.robot {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  gap: 3px;
-  z-index: 4;
-  border: 3px solid #263244;
-  background: #fff;
-  color: #111827;
-  text-align: center;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-}
-
-.robot strong {
-  font-size: 16px;
-}
-
-.robot span {
-  max-width: 112px;
-  color: #64748b;
-  font-size: 11px;
-  line-height: 1.25;
-}
-
-.robot.active {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 7px rgba(37, 99, 235, 0.13);
-}
-
-.dobot {
-  top: 111px;
-  right: calc(7% + clamp(220px, 28%, 300px) + 28px);
-  width: 116px;
-  height: 86px;
-  border-radius: 50%;
-}
-
-.turtlebot {
-  bottom: 86px;
-  left: 34%;
-  width: 160px;
-  height: 84px;
-  border-radius: 16px;
-}
-
-.warehouse {
-  position: absolute;
-  top: 96px;
-  right: 7%;
-  width: clamp(220px, 28%, 300px);
-  min-height: 218px;
-  z-index: 3;
-  border: 3px solid #263244;
-  border-radius: 18px;
-  background: #fff;
-  padding: 14px;
-}
-
-.warehouse h4 {
+.warehouse-title {
   margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
   text-align: center;
-  font-size: 15px;
 }
 
 .warehouse-grid {
@@ -1473,10 +1358,6 @@ onUnmounted(() => {
 
   .item-thumb {
     width: 100%;
-  }
-
-  .center-map {
-    min-width: 720px;
   }
 
   .map-panel {
