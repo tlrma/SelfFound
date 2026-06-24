@@ -17,7 +17,7 @@ def _item_payload(item):
         'description': item.description,
         'image_b64': item.image_b64,
         'found_at': item.found_at,
-        'found_location': item.found_location,
+        'found_info': item.found_info,
         'warehouse_location': item.warehouse_location,
         'status': item.status,
         'created_at': item.created_at,

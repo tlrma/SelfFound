@@ -33,7 +33,7 @@ def send_match_email(user_email: str, user_name: str, item, reasoning: str = "",
 
 [매칭된 분실물 정보]
 물품 종류 : {category_kr}
-습득 장소 : {item.found_location or '미확인'}
+습득 장소 : {item.found_info or '미확인'}
 습득 일시 : {item.created_at.strftime('%Y-%m-%d %H:%M')}
 물품 묘사 : {item.description or '없음'}{reasoning_line}{auth_line}
 
