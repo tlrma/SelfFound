@@ -1,9 +1,9 @@
 /home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/share/dobot_driver/environment/pythonpath.sh
 /home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/share/dobot_driver/environment/pythonpath.dsv
 /home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver-1.0.0-py3.10.egg-info/PKG-INFO
-/home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver-1.0.0-py3.10.egg-info/SOURCES.txt
-/home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver-1.0.0-py3.10.egg-info/top_level.txt
 /home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver-1.0.0-py3.10.egg-info/dependency_links.txt
+/home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver-1.0.0-py3.10.egg-info/top_level.txt
+/home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver-1.0.0-py3.10.egg-info/SOURCES.txt
 /home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver/interface.py
 /home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver/parsers.py
 /home/ssafy/finalPJT/SelfFound/ros2_ws/install/dobot_driver/local/lib/python3.10/dist-packages/dobot_driver/__init__.py
