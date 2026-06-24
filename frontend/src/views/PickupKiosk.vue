@@ -300,6 +300,7 @@ const handlePickupDecision = async (isMine) => {
       console.error('최종 확정 처리 에러:', error);
     }
   } else {
+    currentStep.value = 4;
     robotStatus.value = 'TurtleBot 창고로 복귀 중...';
     turtlebotGoto('dobot_near');
     waitForTurtlebot('dobot_near', () => {
@@ -307,8 +308,10 @@ const handlePickupDecision = async (isMine) => {
       dobotReturn();
       waitForDobot('done:return', () => {
         turtlebotGoto('waiting');
+        startCountdown();
       });
     });
+    return;
   }
 
   currentStep.value = 4;

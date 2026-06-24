@@ -29,7 +29,7 @@ def _to_item_data(item: Item) -> ItemData:
         category=item.category,
         description=item.description or "",
         found_at=item.created_at.replace(tzinfo=None),
-        found_location=item.found_location or "",
+        found_location=item.found_info or "",
         image_path="",
     )
 

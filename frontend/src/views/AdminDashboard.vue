@@ -125,7 +125,7 @@
                   </div>
                   <div>
                     <dt>습득 장소</dt>
-                    <dd>{{ item.found_location || '미입력' }}</dd>
+                    <dd>{{ item.found_info || '미입력' }}</dd>
                   </div>
                   <div>
                     <dt>경과 시간</dt>
@@ -186,7 +186,7 @@
                 <dl class="candidate-meta">
                   <div>
                     <dt>습득 장소</dt>
-                    <dd>{{ candidate.item.found_location || '미입력' }}</dd>
+                    <dd>{{ candidate.item.found_info || '미입력' }}</dd>
                   </div>
                   <div>
                     <dt>습득 날짜</dt>
