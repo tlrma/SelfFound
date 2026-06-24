@@ -103,6 +103,21 @@ let dobotStatusTopic = null;
 let dobotPickCoords = [0, 0, 0];
 let dobotPlaceCoords = [0, 0, 0];
 
+const speak = (text) => {
+  if (!('speechSynthesis' in window)) return;
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'ko-KR';
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  window.speechSynthesis.speak(utterance);
+};
+
+const speakPickupArrivalGuide = () => {
+  speak('터틀봇이 물건을 가지고 도착했습니다. 물건을 확인해 주세요. 본인의 물건이 맞으면 예 버튼을 눌러 주세요. 본인의 물건이 아니라면 물건을 원래 위치에 다시 내려놓고 아니오 버튼을 눌러 주세요.');
+};
+
 // rosbridge 연결 대기
 const waitForRosConnection = () =>
   new Promise((resolve) => {
@@ -178,6 +193,7 @@ const startRobotSequence = async () => {
 
       waitForTurtlebot('return_counter', () => {
         robotStatus.value = '물품이 도착했습니다.';
+        speakPickupArrivalGuide();
       });
     });
   });
@@ -337,6 +353,7 @@ const startCountdown = () => {
 
 const resetKiosk = () => {
   if (mainTimer) clearInterval(mainTimer);
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   stopWebcam();
   //turtlebotStatusTopic?.unsubscribe();
   //turtlebotStatusTopic = null;
@@ -355,6 +372,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (mainTimer) clearInterval(mainTimer);
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   stopWebcam();
 });
 </script>
