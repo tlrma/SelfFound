@@ -25,7 +25,6 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 from ament_index_python.packages import get_package_share_directory
 
-
 class NavigationServer(Node):
     def __init__(self):
         super().__init__('navigation_server')

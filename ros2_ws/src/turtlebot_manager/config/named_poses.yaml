@@ -1,8 +1,8 @@
 named_poses:
   dobot_near:
-    x: 0.25
-    y: 1.11
-    yaw: 1.5708
+    x: 0.27
+    y: 0.94
+    yaw: -1.5708
   waiting:
     x: 1.41
     y: 1.21

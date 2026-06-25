@@ -27,6 +27,13 @@ from cv_bridge import CvBridge
 from pipeline.homography import compute_homography, save_homography, reprojection_error
 
 HOMO_OUT = os.path.join(os.path.dirname(__file__), '..', 'homography.json')
+ROI_PATH = os.path.join(os.path.dirname(__file__), '..', 'camera_roi.json')
+
+_roi = json.load(open(ROI_PATH)) if os.path.exists(ROI_PATH) else None
+if _roi:
+    print(f"ROI 적용: x={_roi['x1']}~{_roi['x2']}, y={_roi['y1']}~{_roi['y2']}")
+else:
+    print("ROI 없음 — 전체 이미지 사용")
 
 
 class CalibNode(Node):
@@ -40,12 +47,15 @@ class CalibNode(Node):
         self.create_subscription(Float64MultiArray, '/dobot_pose_raw', self._pose_cb, 10)
 
     def _img_cb(self, msg):
-        self.frame = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        frame = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        if _roi:
+            frame = frame[_roi['y1']:_roi['y2'], _roi['x1']:_roi['x2']]
+        self.frame = frame
 
     def _pose_cb(self, msg):
         # dobot_pose_raw: [x, y, z, r] (mm)
         if len(msg.data) >= 2:
-            self.dobot_xy = (msg.data[0], msg.data[1])
+            self.dobot_xy = (round(msg.data[0] * 1000, 3), round(msg.data[1] * 1000, 3))
 
 
 pixel_points = []
