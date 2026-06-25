@@ -91,11 +91,14 @@ const submitReport = async () => {
     });
 
     if (response.status === 200 || response.status === 201) {
-      const reportId = response.data.report.id;
-      const topMatch = response.data.top_match;
-      const matched = topMatch ? 'true' : 'false';
-      const reasoning = topMatch?.reasoning ?? '';
-      router.push({ name: 'ReportStatus', params: { id: reportId }, query: { matched, reasoning } });
+      //const reportId = response.data.report.id;
+      //const topMatch = response.data.top_match;
+      //const matched = topMatch ? 'true' : 'false';
+      //const reasoning = topMatch?.reasoning ?? '';
+      //router.push({ name: 'ReportStatus', params: { id: reportId }, query: { matched, reasoning } });
+      
+      const reportId = response.data.report_id;
+      router.push({ name: 'ReportStatus', params: { id: reportId } });
     }
   } catch (error) {
     console.error('신고 접수 실패:', error);

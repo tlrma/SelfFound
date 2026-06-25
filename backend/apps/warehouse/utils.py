@@ -5,8 +5,6 @@ from .models import WarehouseSlot
 SLOT_COORDINATES = {
     'A-1': {'x': 200.0, 'y': 150.0, 'z': -50.0},
     'A-2': {'x': 200.0, 'y':  50.0, 'z': -50.0},
-    'B-1': {'x': 250.0, 'y': 150.0, 'z': -50.0},
-    'B-2': {'x': 250.0, 'y':  50.0, 'z': -50.0},
 }
 
 def get_empty_warehouse_slot():
@@ -37,14 +35,13 @@ def get_empty_warehouse_slot():
 
 def initialize_warehouse_slots():
     """
-    초기 5x5 창고 데이터를 생성하고, 2x2 영역만 비워두는 헬퍼 함수입니다.
+    초기 5x5 창고 데이터를 생성하고, A-1/A-2만 비워두는 헬퍼 함수입니다.
     터미널에서 Django shell을 열고 한 번만 실행해 주시면 됩니다.
     """
     rows = ['A', 'B', 'C', 'D', 'E']
     cols = ['1', '2', '3', '4', '5']
     
-    # 사용할 2x2 활성 영역 지정
-    active_slots = ['A-1', 'A-2', 'B-1', 'B-2']
+    active_slots = ['A-1', 'A-2']
 
     for r in rows:
         for c in cols:
@@ -63,4 +60,4 @@ def initialize_warehouse_slots():
                 slot.is_occupied = not is_active
                 slot.save()
                 
-    print("5x5 창고 초기화가 완료되었습니다. (2x2 영역만 활성화됨)")
+    print("5x5 창고 초기화가 완료되었습니다. (A-1/A-2만 활성화됨)")
