@@ -9,7 +9,7 @@ from apps.matching.service import match_new_item
 
 from apps.warehouse.models import WarehouseSlot
 from apps.warehouse.utils import get_empty_warehouse_slot
-from apps.robot_tasks.dobot_publisher import publish_dobot_pick_and_place_task
+from apps.robot_tasks.dobot_publisher_window import publish_dobot_pick_and_place_task
 
 
 @api_view(['GET', 'POST'])

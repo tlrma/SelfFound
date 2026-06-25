@@ -1,14 +1,13 @@
 <template>
   <div class="kiosk-container">
     <header class="kiosk-header">
-      <h1>🤖 분실물 무인 반환 시스템</h1>
-      <p class="step-indicator">단계: {{ currentStep }} / 4</p>
+      <h1>🤖 분실물 무인 반환 시스템 🤖</h1>
     </header>
 
     <main class="kiosk-content">
       <div v-if="currentStep === 1" class="step-box">
         <h2>👋 무인 반환 시스템에 오신 것을 환영합니다</h2>
-        <p class="description">분실물을 찾으러 오셨나요? 이메일로 안내받은 <strong>인증 코드(6자리)</strong>를 입력해 주세요.</p>
+        <p class="description">분실물을 찾으러 오셨나요?<br>이메일로 안내받은 <strong>인증 코드(6자리)</strong>를 입력해 주세요.</p>
         
         <div class="form-group verification-zone">
           <input 
@@ -37,7 +36,7 @@
       </div>
 
       <div v-if="currentStep === 3" class="step-box">
-        <h2>🤖 터틀봇이 물품을 가져오는 중입니다...</h2>
+        <h2>로봇이 물품을 가져오는 중입니다...</h2>
         <div class="robot-animation-box">
           <div class="turtlebot-mock">📦 Robot</div>
           <p class="robot-status">{{ robotStatus || '터틀봇이 보관함에서 물품을 꺼내 이송 구역으로 이동하고 있습니다.' }}</p>
@@ -58,12 +57,12 @@
         <div v-if="isConfirmed" class="success-message">
           <h2>🎉 수령 완료</h2>
           <p>분실물 수령 처리가 최종 완료되었습니다. 이용해 주셔서 감사합니다.</p>
-          <p class="db-notice">[ DB 상태: 'completed' (수령완료) 변경 완료 ]</p>
         </div>
         <div v-else class="return-message">
           <h2>🔄 물품 회수 및 반송</h2>
           <p>물품이 본인 것이 아니라고 선택하셨습니다.</p>
-          <p>터틀봇이 물품을 안전하게 보관함으로 다시 회수합니다. 관리자에게 문의해 주세요.</p>
+          <p>터틀봇이 물품을 안전하게 보관함으로 다시 회수합니다. 물품을 원 위치에 올려주세요.</p>
+          <p>일치하는 분실물이 들어오면 다시 메일로 알려드리겠습니다.</p>
         </div>
 
         <div class="countdown-zone">
@@ -209,10 +208,7 @@ const verifyCode = async () => {
     if (error.response && error.response.data && error.response.data.error) {
       alert(error.response.data.error);
     } else {
-      alert('테스트 연동: 인증 확인되어 촬영 단계로 이동합니다.');
-      reportId.value = '7';
-      currentStep.value = 2;
-      initWebcam();
+      alert('인증 확인 중 오류가 발생했습니다. 다시 시도해 주세요.');
     }
   }
 };
@@ -301,6 +297,18 @@ const handlePickupDecision = async (isMine) => {
     }
   } else {
     currentStep.value = 4;
+    startCountdown();
+
+    // --- ✅ [추가] '아니오'를 눌렀을 때 백엔드로 'returned' 상태 전송 ---
+    try {
+      await axios.post('/api/pickup/confirm/', {
+        report_id: reportId.value,
+        status: 'returned', // views.py에서 이 값을 받아 처리합니다.
+      });
+    } catch (error) {
+      console.error('반송 상태 업데이트 에러:', error);
+    }
+
     robotStatus.value = 'TurtleBot 창고로 복귀 중...';
     turtlebotGoto('dobot_near');
     waitForTurtlebot('dobot_near', () => {
@@ -308,7 +316,6 @@ const handlePickupDecision = async (isMine) => {
       dobotReturn();
       waitForDobot('done:return', () => {
         turtlebotGoto('waiting');
-        startCountdown();
       });
     });
     return;
@@ -331,10 +338,10 @@ const startCountdown = () => {
 const resetKiosk = () => {
   if (mainTimer) clearInterval(mainTimer);
   stopWebcam();
-  turtlebotStatusTopic?.unsubscribe();
-  turtlebotStatusTopic = null;
-  dobotStatusTopic?.unsubscribe();
-  dobotStatusTopic = null;
+  //turtlebotStatusTopic?.unsubscribe();
+  //turtlebotStatusTopic = null;
+  //dobotStatusTopic?.unsubscribe();
+  //dobotStatusTopic = null;
   robotStatus.value = '';
   currentStep.value = 1;
   reportId.value = '';
@@ -373,7 +380,7 @@ onBeforeUnmount(() => {
 .warning-text { color: #d9534f; font-weight: bold; font-size: 14px; margin-bottom: 20px; }
 .form-group { margin-top: 30px; display: flex; justify-content: center; gap: 10px; }
 .kiosk-input { padding: 15px; font-size: 18px; border: 2px solid #ccc; border-radius: 8px; width: 250px; text-align: center; }
-.code-input { font-size: 26px; letter-spacing: 8px; font-weight: bold; color: #2c3e50; }
+.code-input { font-size: 20px; letter-spacing: 2px; font-weight: bold; color: #2c3e50; }
 button { font-weight: bold; border-radius: 8px; border: none; cursor: pointer; transition: background-color 0.15s, transform 0.1s; }
 button:active { transform: scale(0.98); }
 .btn-verify { padding: 15px 30px; font-size: 18px; background-color: #42b983; color: white; }

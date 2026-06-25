@@ -81,6 +81,8 @@ def match_new_item(item: Item) -> list[dict]:
                     report.auth_code = ''.join(random.choices(string.digits, k=6))
                 report.status = 'matched'
                 report.save(update_fields=['auth_code', 'status'])
+                item.status = 'matched'
+                item.save(update_fields=['status'])
                 send_match_email(report.user_email, report.user_name, item, r.reasoning, report.auth_code)
             else:
                 report.status = 'review'
@@ -132,6 +134,8 @@ def match_new_report(report: Report) -> list[dict]:
                     report.auth_code = ''.join(random.choices(string.digits, k=6))
                 report.status = 'matched'
                 report.save(update_fields=['auth_code', 'status'])
+                matched_item.status = 'matched'
+                matched_item.save(update_fields=['status'])
                 send_match_email(report.user_email, report.user_name, matched_item, r.reasoning, report.auth_code)
             else:
                 report.status = 'review'

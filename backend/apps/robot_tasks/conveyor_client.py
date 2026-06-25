@@ -1,6 +1,6 @@
 from pymodbus.client.sync import ModbusTcpClient
 
-MODBUS_HOST = "localhost"
+MODBUS_HOST = '192.168.110.241'
 MODBUS_PORT = 5020
 
 # reg[0]: 컨베이어 (0=대기, 1=활성)
