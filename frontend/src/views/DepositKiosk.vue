@@ -1,8 +1,7 @@
 <template>
   <div class="kiosk-container">
     <header class="kiosk-header">
-      <h1>🤖 분실물 무인 접수 시스템</h1>
-      <p class="step-indicator" v-if="currentStep > 1 && currentStep < 4">단계: {{ currentStep - 1 }} / 2</p>
+      <h1>🤖 분실물 무인 접수 시스템 🤖</h1>
     </header>
 
     <main class="kiosk-content">
@@ -15,7 +14,7 @@
       </div>
 
       <div v-if="currentStep === 2" class="step-box stt-box">
-        <h2 class="stt-title">🎤 "언제, 어디서, 무엇을" 주우셨나요?</h2>
+        <h2 class="stt-title">🎤 물건을 "언제, 어디서" 주우셨나요?</h2>
         <p class="description">습득하신 상황과 물품에 대해 자유롭게 말씀해 주세요.</p>
         <p class="notice" v-if="isRecording">음성 인식이 활성화되어 기록 중입니다.</p>
         <p class="notice-idle" v-else>마이크를 눌러 말씀을 시작해 주세요.</p>
@@ -39,7 +38,7 @@
         </div>
 
         <div class="form-group">
-          <button @click="completeRegistration" class="btn-complete">💬 말씀 완료 (다음 단계)</button>
+          <button @click="completeRegistration" class="btn-complete">💬 음성 인식 완료</button>
         </div>
       </div>
 
@@ -47,7 +46,7 @@
         <h2>물건을 올려놓아 주세요</h2>
         
         <div class="conveyor-instruction">
-          <p class="instruction-text">🤖 <strong>키오스크 앞의 컨베이어 벨트</strong> 위에 물건을 올려놓으신 후,<br>아래의 확인 버튼을 눌러주세요.</p>
+          <p class="instruction-text"> 키오스크 앞의 <strong>컨베이어 벨트</strong> 위에 물건을 올려놓으신 후,<br>아래의 확인 버튼을 눌러주세요.</p>
           <div class="conveyor-graphic">
             <div class="arrow-animation">👇</div>
             <div class="belt-line"></div>
@@ -314,6 +313,8 @@ onBeforeUnmount(() => {
 .stt-result-box {
   margin: 20px auto 0;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: 80px;
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
@@ -342,6 +343,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: #1e3a5f;
   line-height: 1.5;
+  overflow-wrap: anywhere;
   word-break: keep-all;
 }
 .btn-complete {

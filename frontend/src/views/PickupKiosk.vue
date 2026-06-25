@@ -36,13 +36,23 @@
       </div>
 
       <div v-if="currentStep === 3" class="step-box">
-        <h2>로봇이 물품을 가져오는 중입니다...</h2>
+        <h3>물품을 가져오는 중입니다</h3>
         <div class="robot-animation-box">
           <div class="turtlebot-mock">📦 Robot</div>
-          <p class="robot-status">{{ robotStatus || '터틀봇이 보관함에서 물품을 꺼내 이송 구역으로 이동하고 있습니다.' }}</p>
+          <p class="robot-status">잠시만 기다려 주세요</p>
+          <ol class="robot-progress-list">
+            <li
+              v-for="step in robotProgressSteps"
+              :key="step.id"
+              :class="['robot-progress-item', getRobotProgressState(step.id)]"
+            >
+              <span class="progress-mark">{{ getRobotProgressMark(step.id) }}</span>
+              <span>{{ step.label }}</span>
+            </li>
+          </ol>
         </div>
 
-        <div class="confirmation-zone">
+        <div v-if="isItemArrived" class="confirmation-zone">
           <h3>도착한 물품이 본인의 분실물이 맞습니까?</h3>
           <p class="warning-text">※ 다른 사람의 물품을 고의로 수령할 경우 법적 책임이 따를 수 있습니다.</p>
           
@@ -89,6 +99,26 @@ const isConfirmed = ref(false);
 const countdown = ref(5);
 const captureCountdown = ref(5);
 const robotStatus = ref('');
+const isItemArrived = ref(false);
+const pickupProgressStep = ref(1);
+
+const robotProgressSteps = [
+  { id: 1, label: '터틀봇이 보관함으로 이동하고 있어요' },
+  { id: 2, label: '물건을 꺼내고 있어요' },
+  { id: 3, label: '터틀봇이 카운터로 오고 있어요' },
+];
+
+const getRobotProgressState = (stepId) => {
+  if (stepId < pickupProgressStep.value || isItemArrived.value) return 'is-done';
+  if (stepId === pickupProgressStep.value) return 'is-active';
+  return 'is-waiting';
+};
+
+const getRobotProgressMark = (stepId) => {
+  if (stepId < pickupProgressStep.value || isItemArrived.value) return '✓';
+  if (stepId === pickupProgressStep.value) return '●';
+  return '○';
+};
 
 // 웹캠 객체 참조값
 const videoRef = ref(null);
@@ -180,19 +210,24 @@ const dobotReturn = () => {
 // 로봇 시퀀스 시작: TurtleBot → dobot_near → Dobot 픽업 → TurtleBot → return_counter
 const startRobotSequence = async () => {
   await waitForRosConnection();
+  isItemArrived.value = false;
+  pickupProgressStep.value = 1;
   robotStatus.value = 'TurtleBot 이동 중...';
   turtlebotGoto('dobot_near');
 
   waitForTurtlebot('dobot_near', () => {
+    pickupProgressStep.value = 2;
     robotStatus.value = 'Dobot 픽업 중...';
     dobotPickAndPlace();
 
     waitForDobot('done:pickup', () => {
+      pickupProgressStep.value = 3;
       robotStatus.value = 'TurtleBot 수령 구역으로 이동 중...';
       turtlebotGoto('return_counter');
 
       waitForTurtlebot('return_counter', () => {
         robotStatus.value = '물품이 도착했습니다.';
+        isItemArrived.value = true;
         speakPickupArrivalGuide();
       });
     });
@@ -360,6 +395,8 @@ const resetKiosk = () => {
   //dobotStatusTopic?.unsubscribe();
   //dobotStatusTopic = null;
   robotStatus.value = '';
+  isItemArrived.value = false;
+  pickupProgressStep.value = 1;
   currentStep.value = 1;
   reportId.value = '';
   verificationCode.value = '';
@@ -436,10 +473,41 @@ button:active { transform: scale(0.98); }
   margin-right: 4px;
 }
 
-.robot-animation-box { background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 25px; border-radius: 12px; margin-bottom: 30px; }
-.turtlebot-mock { width: 120px; height: 60px; background-color: #334155; color: white; font-weight: bold; line-height: 60px; border-radius: 30px; margin: 0 auto 15px auto; animation: robot-move 3s infinite ease-in-out; }
+.robot-animation-box { background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 24px 28px 28px; border-radius: 12px; margin-bottom: 30px; }
+.turtlebot-mock { width: 112px; height: 52px; background-color: #334155; color: white; font-weight: bold; line-height: 52px; border-radius: 26px; margin: 0 auto 12px auto; animation: robot-move 3s infinite ease-in-out; }
 @keyframes robot-move { 0% { transform: translateX(-30px); } 50% { transform: translateX(30px); } 100% { transform: translateX(-30px); } }
-.robot-status { font-size: 15px; color: #64748b; margin: 0; }
+.robot-status { font-size: 14px; color: #64748b; margin: 0; }
+.robot-progress-list {
+  width: min(560px, 100%);
+  margin: 24px auto 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.robot-progress-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  color: #94a3b8;
+  font-size: 18px;
+  font-weight: 700;
+}
+.robot-progress-item.is-active {
+  color: #1d3557;
+  font-size: 19px;
+  font-weight: 800;
+}
+.robot-progress-item.is-done {
+  color: #2a9d8f;
+}
+.progress-mark {
+  width: 28px;
+  flex: 0 0 28px;
+  text-align: center;
+  font-size: 19px;
+  font-weight: 900;
+}
 .btn-group-row { display: flex; justify-content: center; gap: 20px; margin-top: 15px; }
 .btn-yes { padding: 20px 35px; font-size: 20px; background-color: #5cb85c; color: white; }
 .btn-no { padding: 20px 35px; font-size: 20px; background-color: #d9534f; color: white; }

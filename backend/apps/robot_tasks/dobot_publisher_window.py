@@ -17,7 +17,7 @@ def is_within_workspace(x, y, z):
     """
     radius = math.sqrt(x**2 + y**2)
 
-    MIN_RADIUS = 90.0
+    MIN_RADIUS = 70.0
     MAX_RADIUS = 240.0
     MIN_Z = -98.0
     MAX_Z = 148.0
