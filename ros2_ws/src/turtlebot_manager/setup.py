@@ -37,6 +37,7 @@ setup(
         'console_scripts': [
             'navigate_to_named_pose = turtlebot_manager.navigate_to_named_pose:main',
             'navigation_server = turtlebot_manager.navigation_server:main',
+            'tts_node = turtlebot_manager.tts_node:main',
         ],
     },
 )
