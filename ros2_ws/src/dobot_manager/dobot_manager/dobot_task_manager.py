@@ -52,7 +52,7 @@ class DobotTaskManager(Node):
         self.home_pose = [200.0, 0.0, 100.0, 0.0]
         
         # 터틀봇 고정 좌표
-        self.turtle_xyz = [171.862, -26.082, -83.127]
+        self.turtle_xyz = [228.862, -46.082, -101.127]
         self.current_task_type = ""
         self._set_dobot_busy(False)
 

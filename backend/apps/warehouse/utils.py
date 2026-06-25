@@ -2,20 +2,19 @@ from .models import WarehouseSlot
 
 # 💡 Dobot이 실제로 이동할 각 슬롯의 물리적 x, y, z 좌표 매핑
 SLOT_COORDINATES = {
-    'A-1': {'x': 2.262, 'y': 212.901, 'z': -79.51},
-    'A-2': {'x': 200.0, 'y':  50.0, 'z': -79.51},
+    'A-1': {'x': 145.0, 'y': 176.901, 'z': -65.51},
+    'A-2': {'x': 12.0, 'y':  175.0, 'z': -53.00},
 }
 
 def get_empty_warehouse_slot():
     """
     사용 가능한(비어있는) 창고 칸을 찾아 반환합니다.
     """
-    # is_occupied가 False인 첫 번째 슬롯을 찾습니다.
+    # is_occupied가 False인 첫 번째 슬롯을 찾기
     empty_slot = WarehouseSlot.objects.filter(is_occupied=False).order_by('slot_id').first()
 
     if empty_slot:
-        # 💡 찾자마자 '점유 중'으로 상태를 변경합니다.
-        # 이렇게 해야 로봇이 이동하는 동안 다른 분실물이 같은 칸에 중복 배정되는 것을 막을 수 있습니다.
+        # 로봇이 이동하는 동안 다른 분실물이 같은 칸에 중복 배정되는 것 방지
         empty_slot.is_occupied = True
         empty_slot.save()
 
