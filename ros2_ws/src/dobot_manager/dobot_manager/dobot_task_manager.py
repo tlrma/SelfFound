@@ -1,4 +1,5 @@
 import sys
+import os
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
@@ -8,7 +9,13 @@ from rclpy.executors import MultiThreadedExecutor
 from std_msgs.msg import Float64MultiArray, String  # ✅ String 타입 추가
 from dobot_msgs.action import PointToPoint
 from dobot_msgs.srv import SuctionCupControl
+from pymodbus.client.sync import ModbusTcpClient
 import time
+
+MODBUS_HOST = os.environ.get('MODBUS_HOST', 'localhost')
+MODBUS_PORT = int(os.environ.get('MODBUS_PORT', 5020))
+REG_DOBOT_BUSY = 2
+
 
 class DobotTaskManager(Node):
     def __init__(self):
@@ -36,6 +43,8 @@ class DobotTaskManager(Node):
             String, '/dobot_status', 10, callback_group=self.cb_group)
 
         self.req = SuctionCupControl.Request()
+        self.modbus = ModbusTcpClient(MODBUS_HOST, port=MODBUS_PORT)
+        self.modbus.connect()
 
         self.tasks_list = []
         self.goal_num = 0
@@ -45,6 +54,7 @@ class DobotTaskManager(Node):
         # 터틀봇 고정 좌표
         self.turtle_xyz = [171.862, -26.082, -83.127]
         self.current_task_type = ""
+        self._set_dobot_busy(False)
 
     def target_callback(self, msg):
         if self.is_working:
@@ -52,7 +62,12 @@ class DobotTaskManager(Node):
             return
 
         self.is_working = True
+        self._set_dobot_busy(True)
         coords = msg.data
+        if len(coords) < 6:
+            self.get_logger().error(f'Invalid target coordinates length: {len(coords)}')
+            self._finish_task()
+            return
 
         # 9단계 좌표 계산 (Z축 100.0)
         t1 = [coords[0], coords[1], coords[2], 0.0]
@@ -91,6 +106,21 @@ class DobotTaskManager(Node):
         self.get_logger().info("작업 시퀀스를 시작합니다.")
         self.execute()
 
+    def _set_reg(self, address, value):
+        try:
+            self.modbus.write_register(address, value)
+        except Exception as e:
+            self.get_logger().warn(f'Modbus write failed reg[{address}]={value}: {e}')
+
+    def _set_dobot_busy(self, is_busy):
+        value = 1 if is_busy else 0
+        self._set_reg(REG_DOBOT_BUSY, value)
+        self.get_logger().info(f'Modbus reg[{REG_DOBOT_BUSY}] = {value} (Dobot busy)')
+
+    def _finish_task(self):
+        self.is_working = False
+        self._set_dobot_busy(False)
+
     def execute(self):
         if self.goal_num > len(self.tasks_list) - 1:
             self.get_logger().info("모든 작업이 완료되었습니다.")
@@ -102,7 +132,7 @@ class DobotTaskManager(Node):
                 self.status_publisher.publish(status_msg)
                 self.get_logger().info(f"상태 토픽 발행 완료: {status_msg.data}")
 
-            self.is_working = False
+            self._finish_task()
             return
 
         current_task = self.tasks_list[self.goal_num]
@@ -119,7 +149,14 @@ class DobotTaskManager(Node):
 
     def timer_callback(self):
         if self.srv_future.done():
-            result = self.srv_future.result()
+            try:
+                result = self.srv_future.result()
+            except Exception as e:
+                self.get_logger().error(f'Suction call failed: {e}')
+                self.timer.cancel()
+                self._finish_task()
+                return
+
             self.get_logger().info(f'Suction call result: {result}')
             self.timer.cancel()
             self.execute()
@@ -139,21 +176,45 @@ class DobotTaskManager(Node):
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):
-        goal_handle = future.result()
+        try:
+            goal_handle = future.result()
+        except Exception as e:
+            self.get_logger().error(f'Goal request failed: {e}')
+            self._finish_task()
+            return
+
         if not goal_handle.accepted:
             self.get_logger().error('Goal rejected :(')
+            self._finish_task()
             return
 
         self._get_result_future = goal_handle.get_result_async()
         self._get_result_future.add_done_callback(self.get_result_callback)
 
     def get_result_callback(self, future):
-        status = future.result().status
+        try:
+            status = future.result().status
+        except Exception as e:
+            self.get_logger().error(f'Goal result failed: {e}')
+            self._finish_task()
+            return
+
         if status == GoalStatus.STATUS_SUCCEEDED:
             self.execute()
+        else:
+            self.get_logger().error(f'Goal failed with status: {status}')
+            self._finish_task()
 
     def feedback_callback(self, feedback_msg):
         pass
+
+    def destroy_node(self):
+        self._set_dobot_busy(False)
+        try:
+            self.modbus.close()
+        except Exception as e:
+            self.get_logger().warn(f'Modbus close failed: {e}')
+        return super().destroy_node()
 
 
 def main(args=None):
