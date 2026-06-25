@@ -130,6 +130,14 @@ const toggleRecording = () => {
   }
 };
 
+const cleanFoundInfo = (text) => {
+  return text
+    .replace(/\b(어+|음+|아+|그+|저+|막+|그러니까|뭐지)\b/g, ' ')
+    .replace(/[,.!?]{2,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 // [1단계 → 2단계]
 const nextStep = () => {
   currentStep.value = 2;
@@ -145,11 +153,12 @@ const completeRegistration = () => {
 // [3단계 → 4단계] found_info 포함해서 컨베이어 API 호출
 const confirmAndRunConveyor = async () => {
   isProcessing.value = true;
+  const foundInfo = cleanFoundInfo(sttText.value);
   try {
     await fetch('/api/robot_tasks/conveyor/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ found_info: sttText.value }),
+      body: JSON.stringify({ found_info: foundInfo }),
     });
   } catch (error) {
     console.error('API 통신 에러:', error);
