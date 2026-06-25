@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import * as ROSLIB from 'roslib'
 
-const ROS_URL = 'ws://192.168.110.241:9091'
+const ROS_URL = 'ws://192.168.110.241:9092'
 
 export const useRosStore = defineStore('ros', () => {
   const ros = shallowRef(null)

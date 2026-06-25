@@ -10,6 +10,7 @@ from apps.matching.service import match_new_item
 from apps.warehouse.models import WarehouseSlot
 from apps.warehouse.utils import get_empty_warehouse_slot
 from apps.robot_tasks.dobot_publisher_window import publish_dobot_pick_and_place_task
+from apps.robot_tasks.found_info_queue import pop_found_info
 
 
 @api_view(['GET', 'POST'])
@@ -40,7 +41,12 @@ def create_item(request):
     # dobot 데이터 분리
     target1_dobot = data.pop('dobot', None)
 
-    # found_info는 detector_node가 payload에 직접 포함해서 전송
+    # Modbus trigger 경로에서는 detector_node가 found_info를 모를 수 있으므로
+    # 키오스크가 미리 저장한 값을 보조 입력으로 사용한다.
+    if not data.get('found_info'):
+        queued_found_info = pop_found_info()
+        if queued_found_info:
+            data['found_info'] = queued_found_info
 
     # 빈 창고 위치 탐색 및 데이터 주입
     target2_warehouse = get_empty_warehouse_slot()

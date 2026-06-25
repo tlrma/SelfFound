@@ -5,7 +5,7 @@ import roslibpy
 
 
 ROS_HOST = "192.168.110.241"
-ROS_PORT = 9091
+ROS_PORT = 9092
 
 _ros_client = None
 _dobot_topic = None
@@ -18,8 +18,8 @@ def is_within_workspace(x, y, z):
     radius = math.sqrt(x**2 + y**2)
 
     MIN_RADIUS = 70.0
-    MAX_RADIUS = 240.0
-    MIN_Z = -98.0
+    MAX_RADIUS = 250.0
+    MIN_Z = -108.0
     MAX_Z = 148.0
 
     if radius < MIN_RADIUS or radius > MAX_RADIUS:
