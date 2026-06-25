@@ -1,7 +1,7 @@
 """
 비전 파이프라인 통합.
 
-흐름: 이미지 입력 → 왜곡 보정 → 흰 배경 분리 → YOLO 추론 → 색상 추출 → LLM 묘사 → Dobot 좌표 변환
+흐름: 이미지 입력 → 왜곡 보정 → YOLO 추론 → 색상 추출 → LLM 묘사 → Dobot 좌표 변환
 """
 
 import numpy as np
@@ -11,7 +11,6 @@ from .color_extractor import color_name, extract_dominant_colors
 from .homography import pixel_to_dobot
 from .inference import LostItemDetector
 from .llm import generate_description
-from .segmentation import segment_on_white
 
 
 class VisionPipeline:
@@ -62,28 +61,26 @@ class VisionPipeline:
         if self.calib:
             image = undistort(image, self.calib)
 
-        # 2. 흰 배경 분리
-        masked, mask, bbox = segment_on_white(image)
-        if bbox is None:
-            return {"error": "object_not_found"}
-
-        # 3. YOLO 추론 (원본 이미지로, bbox crop 없이 전체 추론)
+        # 2. YOLO 추론
         detection = self.detector.top1(image, conf=self.conf)
         if detection is None:
             return {"error": "no_detection"}
 
         category = detection["class_name"]
 
-        # 4. 색상 추출
+        # 3. bbox 마스크로 색상 추출
+        x1, y1, x2, y2 = [int(v) for v in detection["bbox"]]
+        mask = np.zeros(image.shape[:2], dtype=np.uint8)
+        mask[y1:y2, x1:x2] = 255
         raw_colors = extract_dominant_colors(image, mask)
         colors = [{**c, "name": color_name(c["rgb"])} for c in raw_colors]
 
-        # 5. LLM 자연어 묘사 생성
+        # 4. LLM 자연어 묘사 생성
         description = generate_description(image, category) if self.use_llm else ""
 
-        # 6. Dobot 좌표 변환
-        x, y, w, h = bbox
-        center_px = (x + w // 2, y + h // 2)
+        # 5. Dobot 좌표 변환
+        center_px = ((x1 + x2) // 2, (y1 + y2) // 2)
+        bbox = (x1, y1, x2 - x1, y2 - y1)
         dobot_xyz = (
             pixel_to_dobot(center_px, self.H, self.pickup_z)
             if self.H is not None

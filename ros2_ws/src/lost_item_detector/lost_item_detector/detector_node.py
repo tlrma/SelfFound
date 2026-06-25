@@ -56,10 +56,30 @@ class LostItemDetectorNode(Node):
         self.alert_url   = self.get_parameter('alert_url').value
         poll_interval    = self.get_parameter('poll_interval').value
 
-        self.vision = VisionPipeline(model_path=model_path)
+        # 캘리브레이션 · ROI · Homography 로드
+        from pipeline.calibration import load_calibration
+        from pipeline.homography import load_homography
+
+        calib_path = os.path.join(VISION_PATH, 'camera_calib.json')
+        homo_path  = os.path.join(VISION_PATH, 'homography.json')
+        roi_path   = os.path.join(VISION_PATH, 'camera_roi.json')
+
+        calib = load_calibration(calib_path) if os.path.exists(calib_path) else None
+        H     = load_homography(homo_path)   if os.path.exists(homo_path)  else None
+        self._roi = json.load(open(roi_path)) if os.path.exists(roi_path) else None
+
+        self.vision = VisionPipeline(
+            model_path=model_path,
+            calibration=calib,
+            homography=H,
+            conf_threshold=0.3,
+        )
+        self.get_logger().info(f'캘리브레이션: {"로드됨" if calib else "없음"}')
+        self.get_logger().info(f'Homography: {"로드됨" if H is not None else "없음"}')
+        self.get_logger().info(f'ROI: {self._roi if self._roi else "없음"}')
         self.result_pub = self.create_publisher(String, '/detection_result', 10)
 
-        self.modbus = ModbusTcpClient(MODBUS_HOST, port=MODBUS_PORT)
+        self.modbus = ModbusTcpClient(MODBUS_HOST, port=MODBUS_PORT, timeout=3)
         self.modbus.connect()
 
         self._busy = False
@@ -92,10 +112,17 @@ class LostItemDetectorNode(Node):
             return
         try:
             result = self.modbus.read_holding_registers(REG_REALSENSE, 1)
+            if result.isError() or not hasattr(result, 'registers'):
+                self.get_logger().warn(f'Modbus 읽기 오류: {result} — 재연결 시도')
+                self.modbus.close()
+                self.modbus.connect()
+                return
             if result.registers[0] != 1:
                 return
         except Exception as e:
-            self.get_logger().warn(f'Modbus 읽기 실패: {e}')
+            self.get_logger().warn(f'Modbus 읽기 실패: {e} — 재연결 시도')
+            self.modbus.close()
+            self.modbus.connect()
             return
 
         self._busy = True
@@ -163,7 +190,7 @@ class LostItemDetectorNode(Node):
 
             pipe = rs.pipeline()
             cfg = rs.config()
-            cfg.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+            cfg.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
             pipe.start(cfg)
 
             self.get_logger().info('RealSense 카메라 안정화 중...')
@@ -174,6 +201,12 @@ class LostItemDetectorNode(Node):
             color_frame = frames.get_color_frame()
             image = np.asanyarray(color_frame.get_data())
             pipe.stop()
+
+            # ROI 크롭
+            if self._roi:
+                r = self._roi
+                image = image[r['y1']:r['y2'], r['x1']:r['x2']]
+
             return image
 
         except Exception as e:
@@ -199,7 +232,7 @@ class LostItemDetectorNode(Node):
         }
         self._pending_found_info = ''  # 전송 후 초기화
         try:
-            resp = requests.post(self.backend_url, json=payload, timeout=10)
+            resp = requests.post(self.backend_url, json=payload, timeout=30)
             resp.raise_for_status()
             data = resp.json()
             item_id = data.get('item', {}).get('id', '?')
