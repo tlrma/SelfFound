@@ -9,16 +9,10 @@ from rest_framework.response import Response
 from apps.matching.models import MatchResult
 from apps.reports.models import Report
 from apps.warehouse.models import WarehouseSlot
-
-
-WAREHOUSE_SLOT_COORDS = {
-    'A-1': {'x': 2.262, 'y': 212.901, 'z': -76.51},
-    'A-2': {'x': 0.0, 'y': 0.0, 'z': 0.0},
-}
+from apps.warehouse.utils import SLOT_COORDINATES
 
 TURTLEBOT_LOAD_COORDS = {'x': 171.862, 'y': -26.082, 'z': -83.127}
 DOBOT_HOME_COORDS = {'x': 200.0, 'y': 0.0, 'z': 100.0}
-
 
 def _get_pickup_match(report):
     return (
@@ -46,7 +40,7 @@ def verify_code(request):
         return Response({'error': '인증된 신고와 연결된 매칭 물품이 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
 
     warehouse_location = match.item.warehouse_location
-    pick_coords = WAREHOUSE_SLOT_COORDS.get(warehouse_location, TURTLEBOT_LOAD_COORDS)
+    pick_coords = SLOT_COORDINATES.get(warehouse_location, TURTLEBOT_LOAD_COORDS)
 
     report.status = 'processing'
     report.save(update_fields=['status'])
