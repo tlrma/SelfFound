@@ -31,6 +31,14 @@ vision/model_training/valid/
 vision/model_training/test/
 vision/model_training/runs/
 
+# 카메라 캘리브레이션 결과 (로컬 환경마다 다름)
+vision/camera_calib.json
+vision/camera_roi.json
+vision/homography.json
+vision/homography_points.json
+vision/calibration_tools/captured_images/
+vision/calibration_tools/diagnose_frame.png
+
 # IDE
 .vscode/
 .idea/

@@ -2,14 +2,12 @@
 분실물 감지 노드 — RealSense 카메라 실제 사용 버전.
 
 흐름:  Modbus reg[1]=1 감지 → RealSense 캡처 → VisionPipeline → POST /api/items/
-       완료 후 reg[1]=0, reg[2]=1 (Dobot 창고 적재 시작)
+       완료 후 reg[1]=0, /dobot_task_targets 퍼블리시 (Dobot 직접 트리거)
 결과:  /detection_result (std_msgs/String, JSON) 퍼블리시
 
 Modbus 레지스터:
   reg[0]  컨베이어   0=대기  1=활성
   reg[1]  RealSense  0=대기  1=활성   ← 이 노드가 감시
-  reg[2]  Dobot      0=비활성  1=창고적재  2=창고→터틀봇  3=터틀봇→창고
-  reg[3]  TurtleBot  0=비활성  ...
 """
 
 import sys
@@ -41,7 +39,6 @@ MODBUS_HOST = os.environ.get('MODBUS_HOST', 'localhost')
 MODBUS_PORT = int(os.environ.get('MODBUS_PORT', 5020))
 
 REG_REALSENSE = 1
-REG_DOBOT     = 2
 
 
 class LostItemDetectorNode(Node):
@@ -50,11 +47,13 @@ class LostItemDetectorNode(Node):
         super().__init__('lost_item_detector')
 
         self.declare_parameter('model_path', os.path.join(VISION_PATH, 'best.pt'))
-        self.declare_parameter('backend_url', 'http://localhost:8000/api/items/')
+        self.declare_parameter('backend_url', 'http://192.168.110.119:8000/api/items/')
+        self.declare_parameter('alert_url', 'http://192.168.110.119:8000/api/admin_panel/alerts/')
         self.declare_parameter('poll_interval', 0.5)
 
-        model_path  = os.path.abspath(self.get_parameter('model_path').value)
+        model_path       = os.path.abspath(self.get_parameter('model_path').value)
         self.backend_url = self.get_parameter('backend_url').value
+        self.alert_url   = self.get_parameter('alert_url').value
         poll_interval    = self.get_parameter('poll_interval').value
 
         self.vision = VisionPipeline(model_path=model_path)
@@ -124,6 +123,9 @@ class LostItemDetectorNode(Node):
                 self.get_logger().error(f'최대 재시도 횟수 초과 — 이번 물건 건너뜀')
                 self._retry_count = 0
                 self._set_reg(REG_REALSENSE, 0)
+                self._post_alert(
+                    f'VisionPipeline 최대 재시도 초과: {result["error"]} — 물건을 인식하지 못해 건너뜀'
+                )
                 self._busy = False
             return
 
@@ -133,10 +135,8 @@ class LostItemDetectorNode(Node):
         )
         self._post_to_backend(result, image)
 
-        # 완료: reg[1]=0, reg[2]=1 (Dobot 창고 적재)
         self._set_reg(REG_REALSENSE, 0)
-        self._set_reg(REG_DOBOT, 1)
-        self.get_logger().info('reg[1]=0, reg[2]=1 (Dobot 시작)')
+        self.get_logger().info('감지 완료 — reg[1]=0, 백엔드가 Dobot 트리거')
         self._busy = False
 
     # ── 내부 메서드 ────────────────────────────────────────────────────────────
@@ -146,6 +146,16 @@ class LostItemDetectorNode(Node):
             self.modbus.write_register(address, value)
         except Exception as e:
             self.get_logger().warn(f'Modbus 쓰기 실패 reg[{address}]={value}: {e}')
+
+    def _post_alert(self, message: str, level: str = 'error'):
+        try:
+            requests.post(
+                self.alert_url,
+                json={'message': message, 'level': level, 'source': 'detector_node'},
+                timeout=5,
+            )
+        except Exception as e:
+            self.get_logger().warn(f'알림 전송 실패: {e}')
 
     def _capture_realsense(self):
         try:
